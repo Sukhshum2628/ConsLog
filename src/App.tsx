@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { SmartButton } from './components/SmartButton';
 import { LogTable } from './components/LogTable';
+import { HistoryModal } from './components/HistoryModal';
 import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel } from './utils/export';
 import { format } from 'date-fns';
-import { Download } from 'lucide-react';
+import { Download, History } from 'lucide-react';
 
 function App() {
   const {
@@ -14,6 +16,8 @@ function App() {
     activeLog,
     totalHaltTime
   } = useTrainLog();
+
+  const [showHistory, setShowHistory] = useState(false);
 
   const handleSmartButtonPress = () => {
     if (activeLog) {
@@ -40,13 +44,22 @@ function App() {
               {format(new Date(), 'EEEE, d MMMM yyyy')}
             </p>
           </div>
-          <button
-            onClick={handleExport}
-            className="p-2 bg-green-50 text-green-700 rounded-full hover:bg-green-100 transition-colors"
-            title="Export Excel"
-          >
-            <Download className="w-5 h-5" />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowHistory(true)}
+              className="p-2 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
+              title="History"
+            >
+              <History className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleExport}
+              className="p-2 bg-green-50 text-green-700 rounded-full hover:bg-green-100 transition-colors"
+              title="Export Today"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -92,6 +105,9 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* History Modal */}
+      {showHistory && <HistoryModal onClose={() => setShowHistory(false)} />}
     </div>
   );
 }
