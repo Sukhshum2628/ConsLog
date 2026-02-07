@@ -1,38 +1,27 @@
 import React from 'react';
 import type { TrainLog } from '../db';
-import { Trash2, AlertCircle } from 'lucide-react';
-import { format, set } from 'date-fns';
+import { Trash2, AlertCircle, Pencil } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface LogTableProps {
     logs: TrainLog[];
     onDelete: (id: number) => void;
-    onUpdate: (log: TrainLog) => void;
+    onEdit: (log: TrainLog) => void;
 }
 
-export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onUpdate }) => {
+export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onEdit }) => {
 
-    const handleTimeChange = (log: TrainLog, field: 'arrival' | 'departure', newTimeStr: string) => {
-        try {
-            // Parse the new time string (HH:mm)
-            const [hours, minutes] = newTimeStr.split(':').map(Number);
+    const handleDeleteClick = (log: TrainLog) => {
+        if (!log.id) return;
+        // Native confirmation dialog
+        if (window.confirm(`Are you sure you want to DELETE this entry?\n\nArrival: ${format(log.arrival_timestamp, 'HH:mm:ss')}`)) {
+            onDelete(log.id);
+        }
+    };
 
-            // Create new timestamp based on the log's original date
-            // We use the existing timestamp to get the base date, or current date if missing
-            const baseDate = log.arrival_timestamp ? new Date(log.arrival_timestamp) : new Date();
-
-            const newDate = set(baseDate, { hours, minutes, seconds: 0, milliseconds: 0 });
-            const newTimestamp = newDate.getTime();
-
-            const updatedLog = { ...log };
-            if (field === 'arrival') {
-                updatedLog.arrival_timestamp = newTimestamp;
-            } else {
-                updatedLog.departure_timestamp = newTimestamp;
-            }
-
-            onUpdate(updatedLog);
-        } catch (e) {
-            console.error("Invalid time format", e);
+    const handleEditClick = (log: TrainLog) => {
+        if (window.confirm(`Do you want to EDIT this entry?`)) {
+            onEdit(log);
         }
     };
 
@@ -50,7 +39,7 @@ export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onUpdate }) 
                             <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Arrival</th>
                             <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Departure</th>
                             <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Halt</th>
-                            <th className="p-3 w-10"></th>
+                            <th className="p-3 w-16 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -59,40 +48,37 @@ export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onUpdate }) 
 
                             return (
                                 <tr key={log.id} className="hover:bg-gray-50 transition-colors group">
-                                    <td className="p-3">
-                                        <input
-                                            type="time"
-                                            className="bg-transparent font-medium text-gray-900 focus:bg-blue-50 rounded px-1 outline-none w-24"
-                                            value={format(log.arrival_timestamp, 'HH:mm')}
-                                            onChange={(e) => handleTimeChange(log, 'arrival', e.target.value)}
-                                        />
+                                    <td className="p-3 font-medium text-gray-900">
+                                        {format(log.arrival_timestamp, 'HH:mm')}
                                     </td>
-                                    <td className="p-3">
-                                        {isRunning ? (
-                                            <span className="text-gray-400 text-sm italic">--:--</span>
-                                        ) : (
-                                            <input
-                                                type="time"
-                                                className="bg-transparent font-medium text-gray-900 focus:bg-blue-50 rounded px-1 outline-none w-24"
-                                                value={log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm') : ''}
-                                                onChange={(e) => handleTimeChange(log, 'departure', e.target.value)}
-                                            />
-                                        )}
+                                    <td className="p-3 text-gray-600">
+                                        {log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm') : '--'}
                                     </td>
                                     <td className="p-3 text-right font-mono font-medium text-blue-600">
                                         {log.halt_duration_seconds
                                             ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8)
                                             : <span className="text-orange-500 animate-pulse">RUNNING</span>}
                                     </td>
-                                    <td className="p-3 text-right">
-                                        {!isRunning && (
+                                    <td className="p-3 text-center">
+                                        <div className="flex items-center justify-end gap-1">
                                             <button
-                                                onClick={() => log.id && onDelete(log.id)}
-                                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                                onClick={() => handleEditClick(log)}
+                                                className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                title="Edit"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Pencil className="w-4 h-4" />
                                             </button>
-                                        )}
+
+                                            {!isRunning && (
+                                                <button
+                                                    onClick={() => handleDeleteClick(log)}
+                                                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             );

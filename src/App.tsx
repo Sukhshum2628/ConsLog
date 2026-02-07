@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { SmartButton } from './components/SmartButton';
 import { LogTable } from './components/LogTable';
 import { HistoryModal } from './components/HistoryModal';
+import { EditLogModal } from './components/EditLogModal';
 import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel } from './utils/export';
 import { format } from 'date-fns';
 import { Download, History } from 'lucide-react';
+import type { TrainLog } from './db';
 
 function App() {
   const {
@@ -19,6 +21,7 @@ function App() {
   } = useTrainLog();
 
   const [showHistory, setShowHistory] = useState(false);
+  const [editingLog, setEditingLog] = useState<TrainLog | null>(null);
 
   const handleSmartButtonPress = () => {
     if (activeLog) {
@@ -36,8 +39,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
-      {/* Header */}
-      <header className="bg-white shadow-sm p-4 pt-8 sticky top-0 z-10">
+      {/* Header - Increased Top Padding for Safe Area */}
+      <header className="bg-white shadow-sm p-4 pt-12 sticky top-0 z-10">
         <div className="max-w-md mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold text-gray-800">ConsLog</h1>
@@ -67,7 +70,7 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 p-4 max-w-md mx-auto w-full flex flex-col gap-6 overflow-hidden">
 
-        {/* Logs Table (Now at Top) */}
+        {/* Logs Table (Top) */}
         <section className="flex-1 flex flex-col min-h-0">
           <div className="flex justify-between items-end mb-2">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
@@ -75,10 +78,14 @@ function App() {
             </h2>
           </div>
 
-          <LogTable logs={logs} onDelete={removeEntry} onUpdate={updateEntry} />
+          <LogTable
+            logs={logs}
+            onDelete={removeEntry}
+            onEdit={(log) => setEditingLog(log)}
+          />
         </section>
 
-        {/* Smart Button Area (Now at Bottom) */}
+        {/* Smart Button Area (Bottom) */}
         <section className="flex-none mb-4">
           <SmartButton
             status={activeLog ? 'RUNNING' : 'IDLE'}
@@ -109,6 +116,15 @@ function App() {
 
       {/* History Modal */}
       {showHistory && <HistoryModal onClose={() => setShowHistory(false)} />}
+
+      {/* Edit Log Modal */}
+      {editingLog && (
+        <EditLogModal
+          log={editingLog}
+          onClose={() => setEditingLog(null)}
+          onSave={updateEntry}
+        />
+      )}
     </div>
   );
 }

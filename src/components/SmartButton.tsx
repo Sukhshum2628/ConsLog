@@ -24,7 +24,7 @@ export const SmartButton: React.FC<SmartButtonProps> = ({ status, startTime, onP
             <button
                 onClick={handlePress}
                 className={`
-                    w-48 h-48 rounded-full shadow-2xl transition-all duration-200 transform active:scale-95
+                    w-40 h-40 rounded-full shadow-2xl transition-all duration-200 transform active:scale-95
                     flex flex-col items-center justify-center gap-1 border-4
                     ${status === 'IDLE'
                         ? 'bg-green-600 border-green-400 hover:bg-green-700 text-white'
