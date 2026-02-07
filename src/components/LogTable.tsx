@@ -1,84 +1,105 @@
 import React from 'react';
 import type { TrainLog } from '../db';
-import { format } from 'date-fns';
-import { Trash2, Clock } from 'lucide-react';
-import { useStopwatch } from '../hooks/useStopwatch';
+import { Trash2, AlertCircle } from 'lucide-react';
+import { format, set } from 'date-fns';
 
 interface LogTableProps {
     logs: TrainLog[];
     onDelete: (id: number) => void;
+    onUpdate: (log: TrainLog) => void;
 }
 
-const RunningRow: React.FC<{ log: TrainLog }> = ({ log }) => {
-    const { formatted } = useStopwatch(log.arrival_timestamp);
+export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onUpdate }) => {
+
+    const handleTimeChange = (log: TrainLog, field: 'arrival' | 'departure', newTimeStr: string) => {
+        try {
+            // Parse the new time string (HH:mm)
+            const [hours, minutes] = newTimeStr.split(':').map(Number);
+
+            // Create new timestamp based on the log's original date
+            // We use the existing timestamp to get the base date, or current date if missing
+            const baseDate = log.arrival_timestamp ? new Date(log.arrival_timestamp) : new Date();
+
+            const newDate = set(baseDate, { hours, minutes, seconds: 0, milliseconds: 0 });
+            const newTimestamp = newDate.getTime();
+
+            const updatedLog = { ...log };
+            if (field === 'arrival') {
+                updatedLog.arrival_timestamp = newTimestamp;
+            } else {
+                updatedLog.departure_timestamp = newTimestamp;
+            }
+
+            onUpdate(updatedLog);
+        } catch (e) {
+            console.error("Invalid time format", e);
+        }
+    };
 
     return (
-        <tr className="bg-orange-50 border-l-4 border-orange-500 animate-pulse-subtle">
-            <td className="p-3 text-center font-medium text-gray-500">#</td>
-            <td className="p-3 text-gray-900">{format(log.arrival_timestamp, 'HH:mm:ss')}</td>
-            <td className="p-3 text-gray-400 italic">--:--:--</td>
-            <td className="p-3 font-mono font-bold text-orange-600 flex items-center gap-2">
-                <Clock className="w-4 h-4 animate-spin-slow" />
-                {formatted}
-            </td>
-            <td className="p-3 text-center">
-                {/* Cannot delete running row */}
-            </td>
-        </tr>
-    );
-};
-
-export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete }) => {
-    return (
-        <div className="overflow-x-auto bg-white rounded-lg shadow border border-gray-200">
-            <table className="w-full text-left text-sm">
-                <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
-                    <tr>
-                        <th className="p-3 text-center w-12">#</th>
-                        <th className="p-3">Arrival</th>
-                        <th className="p-3">Departure</th>
-                        <th className="p-3">Halt Time</th>
-                        <th className="p-3 text-center w-16">Act</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                    {logs.map((log, index) => (
-                        log.status === 'RUNNING' ? (
-                            <RunningRow key={log.id || 'running'} log={log} />
-                        ) : (
-                            <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="p-3 text-center text-gray-400">{logs.length - index}</td>
-                                <td className="p-3 text-gray-900">{format(log.arrival_timestamp, 'HH:mm:ss')}</td>
-                                <td className="p-3 text-gray-900">
-                                    {log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm:ss') : '-'}
-                                </td>
-                                <td className="p-3 font-mono font-medium text-gray-700">
-                                    {log.halt_duration_seconds ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8) : '--'}
-                                </td>
-                                <td className="p-3 text-center">
-                                    <button
-                                        onClick={() => {
-                                            if (confirm(`Delete entry?\nArrival: ${format(log.arrival_timestamp, 'HH:mm:ss')}`)) {
-                                                onDelete(log.id!);
-                                            }
-                                        }}
-                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </td>
-                            </tr>
-                        )
-                    ))}
-                    {logs.length === 0 && (
+        <div className="flex-1 overflow-auto bg-white rounded-2xl shadow-sm border border-gray-100">
+            {logs.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                    <AlertCircle className="w-12 h-12 mb-2 opacity-20" />
+                    <p>No logs for today yet.</p>
+                </div>
+            ) : (
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
-                            <td colSpan={5} className="p-8 text-center text-gray-400 italic">
-                                No halts logged today.
-                            </td>
+                            <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Arrival</th>
+                            <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Departure</th>
+                            <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Halt</th>
+                            <th className="p-3 w-10"></th>
                         </tr>
-                    )}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {logs.map((log) => {
+                            const isRunning = log.status === 'RUNNING';
+
+                            return (
+                                <tr key={log.id} className="hover:bg-gray-50 transition-colors group">
+                                    <td className="p-3">
+                                        <input
+                                            type="time"
+                                            className="bg-transparent font-medium text-gray-900 focus:bg-blue-50 rounded px-1 outline-none w-24"
+                                            value={format(log.arrival_timestamp, 'HH:mm')}
+                                            onChange={(e) => handleTimeChange(log, 'arrival', e.target.value)}
+                                        />
+                                    </td>
+                                    <td className="p-3">
+                                        {isRunning ? (
+                                            <span className="text-gray-400 text-sm italic">--:--</span>
+                                        ) : (
+                                            <input
+                                                type="time"
+                                                className="bg-transparent font-medium text-gray-900 focus:bg-blue-50 rounded px-1 outline-none w-24"
+                                                value={log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm') : ''}
+                                                onChange={(e) => handleTimeChange(log, 'departure', e.target.value)}
+                                            />
+                                        )}
+                                    </td>
+                                    <td className="p-3 text-right font-mono font-medium text-blue-600">
+                                        {log.halt_duration_seconds
+                                            ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8)
+                                            : <span className="text-orange-500 animate-pulse">RUNNING</span>}
+                                    </td>
+                                    <td className="p-3 text-right">
+                                        {!isRunning && (
+                                            <button
+                                                onClick={() => log.id && onDelete(log.id)}
+                                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            )}
         </div>
     );
 };

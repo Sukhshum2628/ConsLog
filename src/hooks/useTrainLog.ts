@@ -52,6 +52,18 @@ export const useTrainLog = () => {
         await loadLogs();
     };
 
+    const updateEntry = async (updatedLog: TrainLog) => {
+        // Recalculate duration if both times exist
+        if (updatedLog.arrival_timestamp && updatedLog.departure_timestamp) {
+            updatedLog.halt_duration_seconds = Math.floor(
+                (updatedLog.departure_timestamp - updatedLog.arrival_timestamp) / 1000
+            );
+            updatedLog.status = 'COMPLETED';
+        }
+        await updateLog(updatedLog);
+        await loadLogs();
+    };
+
     const removeEntry = async (id: number) => {
         await deleteLog(id);
         await loadLogs();
@@ -72,6 +84,7 @@ export const useTrainLog = () => {
         addEntry,
         completeEntry,
         removeEntry,
+        updateEntry,
         activeLog,
         totalHaltTime,
         refreshLogs: loadLogs

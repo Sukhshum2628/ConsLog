@@ -13,6 +13,7 @@ function App() {
     addEntry,
     completeEntry,
     removeEntry,
+    updateEntry,
     activeLog,
     totalHaltTime
   } = useTrainLog();
@@ -36,7 +37,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
       {/* Header */}
-      <header className="bg-white shadow-sm p-4 sticky top-0 z-10">
+      <header className="bg-white shadow-sm p-4 pt-8 sticky top-0 z-10">
         <div className="max-w-md mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold text-gray-800">ConsLog</h1>
@@ -64,18 +65,9 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 max-w-md mx-auto w-full flex flex-col gap-6">
+      <main className="flex-1 p-4 max-w-md mx-auto w-full flex flex-col gap-6 overflow-hidden">
 
-        {/* Smart Button Area */}
-        <section>
-          <SmartButton
-            status={activeLog ? 'RUNNING' : 'IDLE'}
-            startTime={activeLog?.arrival_timestamp}
-            onPress={handleSmartButtonPress}
-          />
-        </section>
-
-        {/* Logs Table */}
+        {/* Logs Table (Now at Top) */}
         <section className="flex-1 flex flex-col min-h-0">
           <div className="flex justify-between items-end mb-2">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
@@ -83,13 +75,22 @@ function App() {
             </h2>
           </div>
 
-          <LogTable logs={logs} onDelete={removeEntry} />
+          <LogTable logs={logs} onDelete={removeEntry} onUpdate={updateEntry} />
+        </section>
+
+        {/* Smart Button Area (Now at Bottom) */}
+        <section className="flex-none mb-4">
+          <SmartButton
+            status={activeLog ? 'RUNNING' : 'IDLE'}
+            startTime={activeLog?.arrival_timestamp}
+            onPress={handleSmartButtonPress}
+          />
         </section>
 
       </main>
 
       {/* Footer / Total */}
-      <footer className="bg-white border-t border-gray-200 p-4 sticky bottom-0 safe-area-bottom">
+      <footer className="bg-white border-t border-gray-200 p-4 pb-8 sticky bottom-0 safe-area-bottom">
         <div className="max-w-md mx-auto">
           <div className="flex justify-between items-center bg-gray-900 text-white p-4 rounded-xl shadow-lg">
             <div className="flex flex-col">

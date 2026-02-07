@@ -1,5 +1,7 @@
 import React from 'react';
 import { useStopwatch } from '../hooks/useStopwatch';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
 
 interface SmartButtonProps {
     status: 'IDLE' | 'RUNNING';
@@ -10,29 +12,42 @@ interface SmartButtonProps {
 export const SmartButton: React.FC<SmartButtonProps> = ({ status, startTime, onPress }) => {
     const { formatted } = useStopwatch(status === 'RUNNING' && startTime ? startTime : null);
 
-    return (
-        <button
-            onClick={onPress}
-            className={`
-        w-full py-8 rounded-2xl shadow-xl transition-all duration-300 transform active:scale-95
-        flex flex-col items-center justify-center gap-2
-        ${status === 'IDLE'
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-orange-600 hover:bg-orange-700 text-white animate-pulse-slow'}
-      `}
-        >
-            <span className="text-2xl font-bold uppercase tracking-wider">
-                {status === 'IDLE' ? '🚆 Train Arrived' : '🛑 Train Departed'}
-            </span>
+    const handlePress = async () => {
+        if (Capacitor.isNativePlatform()) {
+            await Haptics.impact({ style: ImpactStyle.Heavy });
+        }
+        onPress();
+    };
 
+    return (
+        <div className="flex flex-col items-center justify-center py-4">
+            <button
+                onClick={handlePress}
+                className={`
+                    w-48 h-48 rounded-full shadow-2xl transition-all duration-200 transform active:scale-95
+                    flex flex-col items-center justify-center gap-1 border-4
+                    ${status === 'IDLE'
+                        ? 'bg-green-600 border-green-400 hover:bg-green-700 text-white'
+                        : 'bg-red-600 border-red-400 hover:bg-red-700 text-white animate-pulse'}
+                `}
+            >
+                <span className="text-3xl font-black tracking-widest uppercase dropped-shadow-md">
+                    {status === 'IDLE' ? 'START' : 'STOP'}
+                </span>
+
+                {status === 'RUNNING' && (
+                    <div className="flex flex-col items-center mt-2">
+                        <span className="text-xl font-mono font-bold bg-black/20 px-3 py-1 rounded-lg tabular-nums">
+                            {formatted}
+                        </span>
+                    </div>
+                )}
+            </button>
             {status === 'RUNNING' && (
-                <div className="flex flex-col items-center">
-                    <span className="text-4xl font-mono font-black tracking-widest bg-black/20 px-4 py-2 rounded-lg">
-                        {formatted}
-                    </span>
-                    <span className="text-sm opacity-80 mt-1 uppercase text-orange-100">Tap to Stop</span>
-                </div>
+                <span className="text-xs text-gray-400 mt-4 uppercase tracking-widest font-semibold animate-pulse">
+                    Tap to Stop Halt
+                </span>
             )}
-        </button>
+        </div>
     );
 };
