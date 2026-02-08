@@ -4,17 +4,22 @@ import { LogTable } from './components/LogTable';
 import { HistoryModal } from './components/HistoryModal';
 import { EditLogModal } from './components/EditLogModal';
 import { ExportOptionsModal } from './components/ExportOptionsModal';
-import { LoginModal } from './components/LoginModal';
 import { LobbyManager } from './components/LobbyManager';
+import { SettingsModal } from './components/SettingsModal';
+import { Onboarding } from './components/Onboarding';
 import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel, exportToPDF } from './utils/export';
 import { format } from 'date-fns';
-import { Download, History, UserCircle, Users, Wifi, WifiOff } from 'lucide-react';
+import { Download, History, Settings, Wifi, WifiOff } from 'lucide-react';
 import type { TrainLog } from './db';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 function InnerApp() {
   const [lobbyId, setLobbyId] = useState<string | null>(localStorage.getItem('timeLog_lobbyId'));
+  // Onboarding State
+  const [hasOnboarded, setHasOnboarded] = useState<boolean>(() => {
+    return localStorage.getItem('timeLog_hasOnboarded') === 'true';
+  });
 
   // Persist Lobby ID
   useEffect(() => {
@@ -35,10 +40,11 @@ function InnerApp() {
     totalHaltTime
   } = useTrainLog(lobbyId);
 
-  const { user, logout } = useAuth();
+  const { user } = useAuth(); // Handled in Settings
+
   const [showHistory, setShowHistory] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showLobbyManager, setShowLobbyManager] = useState(false);
   const [editingLog, setEditingLog] = useState<TrainLog | null>(null);
 
@@ -66,12 +72,22 @@ function InnerApp() {
     }
   };
 
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('timeLog_hasOnboarded', 'true');
+    setHasOnboarded(true);
+  };
+
   const totalHaltFormatted = new Date(totalHaltTime * 1000).toISOString().substr(11, 8);
+
+  // 1. Show Onboarding if new user
+  if (!hasOnboarded) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
-      {/* Header */}
-      <header className="bg-white shadow-sm p-4 pt-12 sticky top-0 z-10">
+      {/* Header - Balanced Top Padding */}
+      <header className="bg-white shadow-sm p-4 pt-12 sticky top-0 z-20 transition-all">
         <div className="max-w-md mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold text-gray-800">TimeLog</h1>
@@ -91,45 +107,7 @@ function InnerApp() {
             </div>
           </div>
           <div className="flex gap-2">
-
-            {/* Lobby Button */}
-            <button
-              onClick={() => {
-                if (!user) setShowLogin(true);
-                else setShowLobbyManager(true);
-              }}
-              className={`p-2 rounded-full transition-colors ${lobbyId ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'}`}
-              title="Team Sync"
-            >
-              <Users className="w-5 h-5" />
-            </button>
-
-            {/* Profile Button */}
-            {user ? (
-              <button
-                onClick={() => {
-                  if (confirm('Log out?')) logout();
-                }}
-                className="p-1 pr-2 bg-gray-100 rounded-full flex items-center gap-2 hover:bg-gray-200 transition-colors"
-              >
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border border-gray-300" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
-                    {user.email?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowLogin(true)}
-                className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors"
-                title="Sign In"
-              >
-                <UserCircle className="w-5 h-5" />
-              </button>
-            )}
-
+            {/* History */}
             <button
               onClick={() => setShowHistory(true)}
               className="p-2 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
@@ -137,12 +115,23 @@ function InnerApp() {
             >
               <History className="w-5 h-5" />
             </button>
+
+            {/* Export */}
             <button
               onClick={handleExportClick}
               className="p-2 bg-green-50 text-green-700 rounded-full hover:bg-green-100 transition-colors"
               title="Export Today"
             >
               <Download className="w-5 h-5" />
+            </button>
+
+            {/* Settings (Consolidated) */}
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -177,8 +166,8 @@ function InnerApp() {
 
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 p-4 pb-8 sticky bottom-0 safe-area-bottom">
+      {/* Footer - Increased Bottom Padding to Match Header */}
+      <footer className="bg-white border-t border-gray-200 p-4 pb-12 sticky bottom-0 safe-area-bottom z-20">
         <div className="max-w-md mx-auto">
           <div className="flex justify-between items-center bg-gray-900 text-white p-4 rounded-xl shadow-lg">
             <div className="flex flex-col">
@@ -212,7 +201,16 @@ function InnerApp() {
         />
       )}
 
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
+      {showSettings && (
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          lobbyId={lobbyId}
+          onOpenLobby={() => {
+            setShowSettings(false);
+            setShowLobbyManager(true);
+          }}
+        />
+      )}
 
       {showLobbyManager && (
         <LobbyManager
