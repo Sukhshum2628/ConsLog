@@ -25,13 +25,14 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Enable Offline Persistence
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') {
-        console.warn('Persistence failed: Multiple tabs open');
-    } else if (err.code == 'unimplemented') {
-        console.warn('Persistence not supported by browser');
-    }
-});
+// Enable Offline Persistence
+// enableIndexedDbPersistence(db).catch((err) => {
+//     if (err.code == 'failed-precondition') {
+//         console.warn('Persistence failed: Multiple tabs open');
+//     } else if (err.code == 'unimplemented') {
+//         console.warn('Persistence not supported by browser');
+//     }
+// });
 
 export const googleProvider = new GoogleAuthProvider();
 export { auth, db };
