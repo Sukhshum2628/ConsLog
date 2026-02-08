@@ -29,37 +29,21 @@ export const LobbyManager: React.FC<LobbyManagerProps> = ({ currentLobbyId, onJo
     };
 
     const handleCreateLobby = async () => {
-        if (!user) {
-            alert("No user found. Please login.");
-            return;
-        }
+        if (!user) return;
         setLoading(true);
         setError('');
         try {
             const code = generateCode();
-            alert(`Attempting to create lobby: ${code} for user: ${user.uid}`);
-
-            // 10s Timeout Race
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Request timed out")), 10000)
-            );
-
-            await Promise.race([
-                setDoc(doc(db, 'lobbies', code), {
-                    createdAt: serverTimestamp(),
-                    hostId: user.uid,
-                    hostName: user.displayName || 'Anonymous',
-                    participants: [user.uid]
-                }),
-                timeoutPromise
-            ]);
-
-            alert("Lobby created successfully!");
+            await setDoc(doc(db, 'lobbies', code), {
+                createdAt: new Date(),
+                hostId: user.uid,
+                hostName: user.displayName || 'Anonymous',
+                participants: [user.uid]
+            });
             onJoinLobby(code, true);
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
-            alert(`Lobby Create Error: ${err.message}`);
-            setError(`Failed: ${err.message}`);
+            setError('Failed to create lobby');
         } finally {
             setLoading(false);
         }
