@@ -31,10 +31,22 @@ export const useTrainLog = (lobbyId: string | null = null) => {
             );
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
-                const remoteLogs = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })) as TrainLog[];
+                const remoteLogs = snapshot.docs.map(doc => {
+                    const data = doc.data() as Omit<TrainLog, 'id'>;
+                    return {
+                        id: doc.id, // Keep as string for now, but TrainLog expects number? db.ts says id?: number.
+                        // wait, id in db.ts is number. Firestore IDs are strings. 
+                        // I should probably allow id to be string | number in db.ts or handle it here.
+                        // For now, let's cast it to any to silence TS if needed, or better, update TrainLog type.
+                        // But I can't update db.ts easily if it breaks other things.
+                        // Let's look at how I treated it in the map: 
+                        // setLogs(prev => prev.map(l => l.id === updatedLog.id ? updatedLog : l));
+                        // It seems I treated it as mix.
+                        // The error says: Type '{ id: string; }' is missing properties from TrainLog.
+                        // So I need to ensure data has them.
+                        ...data
+                    } as unknown as TrainLog;
+                });
                 setLogs(remoteLogs);
                 setLoading(false);
             }, (err) => {
@@ -61,17 +73,15 @@ export const useTrainLog = (lobbyId: string | null = null) => {
 
     const addEntry = async () => {
         const newLog: TrainLog = {
-            id: Date.now(), // Local temp ID or used as Doc ID
+            id: Date.now(),
             date: format(new Date(), 'yyyy-MM-dd'),
             arrival_timestamp: Date.now(),
-            status: 'RUNNING'
+            status: 'RUNNING',
+            created_at: Date.now()
         };
 
         if (lobbyId) {
             // Firestore
-            const docRef = doc(collection(db, 'lobbies', lobbyId, 'logs'));
-            // Use doc ID as log ID for consistency if needed, but we used Date.now() locally.
-            // Let's use Date.now() as ID for consistency across both for now, converted to string for Firestore doc
             await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(newLog.id)), newLog);
         } else {
             // Local

@@ -1,7 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 
 interface TrainLog {
-  id?: number;
+  id?: number | string;
   date: string;
   arrival_timestamp: number;
   departure_timestamp?: number;
