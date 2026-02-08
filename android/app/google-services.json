@@ -1,0 +1,29 @@
+{
+    "project_info": {
+        "project_number": "680232483390",
+        "project_id": "timelog-e6922",
+        "storage_bucket": "timelog-e6922.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:680232483390:android:f94af0a30538beac952f6f",
+                "android_client_info": {
+                    "package_name": "com.conslog.app"
+                }
+            },
+            "oauth_client": [],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyAEZpLgxZXS2IpLyQkmaovNSPteAZ1WF7g"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": []
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}
