@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: [],
       manifest: {
-        name: 'ConsLog - Train Halt Logger',
-        short_name: 'ConsLog',
-        description: 'Offline-first train halt logger for construction sites',
+        name: 'TimeLog',
+        short_name: 'TimeLog',
+        description: 'Offline-first train halt logger',
         theme_color: '#ffffff',
         icons: [
           {

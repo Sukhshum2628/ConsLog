@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { X, Download, Check, Calendar } from 'lucide-react';
 import { getAllLogs, type TrainLog } from '../db';
-import { exportToExcel } from '../utils/export';
+import { exportToExcel, exportToPDF } from '../utils/export';
 import { format } from 'date-fns';
+import { ExportOptionsModal } from './ExportOptionsModal';
 
 interface HistoryModalProps {
     onClose: () => void;
@@ -18,6 +19,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose }) => {
     const [logs, setLogs] = useState<TrainLog[]>([]);
     const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
+    const [showExportOptions, setShowExportOptions] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -66,22 +68,30 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose }) => {
         }
     };
 
-    const handleExport = async () => {
+    const handleExportClick = () => {
         if (selectedDates.size === 0) return;
+        setShowExportOptions(true);
+    };
 
-        // Gather all logs from selected dates
+    const processExport = async (type: 'excel' | 'pdf') => {
         const logsToExport = logs.filter(log => selectedDates.has(log.date));
 
-        // Use existing export function (it handles list of logs perfectly)
-        await exportToExcel(logsToExport);
+        const fileName = `TimeLog_History_${selectedDates.size}Days_${format(new Date(), 'yyyy-MM-dd')}`;
 
+        if (type === 'excel') {
+            await exportToExcel(logsToExport, fileName);
+        } else {
+            await exportToPDF(logsToExport, fileName);
+        }
+
+        setShowExportOptions(false);
         onClose();
     };
 
     return (
         <div className="fixed inset-0 bg-white z-50 flex flex-col animate-in slide-in-from-bottom-5 duration-300">
             {/* Header */}
-            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+            <div className="p-4 pt-12 border-b flex justify-between items-center bg-gray-50 sticky top-0 z-10">
                 <h2 className="text-lg font-bold flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
                     History & Export
@@ -145,10 +155,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose }) => {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t bg-white safe-area-bottom">
+            <div className="p-4 pb-8 border-t bg-white safe-area-bottom sticky bottom-0 z-10">
                 <button
                     disabled={selectedDates.size === 0}
-                    onClick={handleExport}
+                    onClick={handleExportClick}
                     className={`
                         w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 text-lg shadow-lg
                         ${selectedDates.size > 0
@@ -162,6 +172,14 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose }) => {
                         : 'Select Days to Export'}
                 </button>
             </div>
+
+            {/* Export Options Modal */}
+            {showExportOptions && (
+                <ExportOptionsModal
+                    onClose={() => setShowExportOptions(false)}
+                    onExport={processExport}
+                />
+            )}
         </div>
     );
 };
