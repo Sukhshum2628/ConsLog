@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { signInWithPopup, signOut, onAuthStateChanged, type User } from 'firebase/auth';
+import { signInWithPopup, signOut, onAuthStateChanged, type User, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthContextType {
     user: User | null;
@@ -16,6 +18,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Initialize Google Auth Plugin for Web/Native
+        if (Capacitor.getPlatform() !== 'web') {
+            GoogleAuth.initialize();
+        }
+
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setLoading(false);
@@ -25,7 +32,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async () => {
         try {
-            await signInWithPopup(auth, googleProvider);
+            if (Capacitor.getPlatform() === 'web') {
+                // Web fallback
+                await signInWithPopup(auth, googleProvider);
+            } else {
+                // Native Login
+                const googleUser = await GoogleAuth.signIn();
+                // Create credential for Firebase
+                const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+                await signInWithCredential(auth, credential);
+            }
         } catch (error) {
             console.error("Login Failed", error);
             alert("Login failed. Please try again.");
@@ -35,6 +51,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async () => {
         try {
             await signOut(auth);
+            if (Capacitor.getPlatform() !== 'web') {
+                await GoogleAuth.signOut();
+            }
         } catch (error) {
             console.error("Logout Failed", error);
         }
