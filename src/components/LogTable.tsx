@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 
 interface LogTableProps {
     logs: TrainLog[];
-    onDelete: (id: number) => void;
+    onDelete: (id: number | string) => void;
     onEdit: (log: TrainLog) => void;
 }
 
