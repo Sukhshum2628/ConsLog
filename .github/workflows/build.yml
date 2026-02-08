@@ -47,6 +47,12 @@ jobs:
 
 
 
+
+      - name: Print SHA-1 Fingerprint
+        run: |
+          chmod +x android/gradlew
+          cd android && ./gradlew signingReport
+
       - name: Build APK
         run: |
           chmod +x android/gradlew
