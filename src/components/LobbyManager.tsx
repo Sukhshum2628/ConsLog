@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Users, LogOut, Plus, ArrowRight, Copy, Check } from 'lucide-react';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 
