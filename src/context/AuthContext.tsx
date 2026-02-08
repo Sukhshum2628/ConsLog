@@ -42,9 +42,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
                 await signInWithCredential(auth, credential);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Login Failed", error);
-            alert("Login failed. Please try again.");
+            alert(`Login Error: ${error.message || JSON.stringify(error)}`);
         }
     };
 
