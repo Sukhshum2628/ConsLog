@@ -12,7 +12,7 @@ import { exportToExcel, exportToPDF } from './utils/export';
 import { format } from 'date-fns';
 import { Download, History, Settings, Wifi, WifiOff } from 'lucide-react';
 import type { TrainLog } from './db';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 
 function InnerApp() {
   const [lobbyId, setLobbyId] = useState<string | null>(localStorage.getItem('timeLog_lobbyId'));
