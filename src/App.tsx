@@ -40,7 +40,7 @@ function InnerApp() {
     totalHaltTime
   } = useTrainLog(lobbyId);
 
-  const { user } = useAuth(); // Handled in Settings
+  // const { user } = useAuth(); // Handled in Settings
 
   const [showHistory, setShowHistory] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);

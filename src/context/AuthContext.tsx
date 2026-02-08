@@ -5,7 +5,7 @@ import { auth, googleProvider } from '../lib/firebase';
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    signInWithGoogle: () => Promise<void>;
+    login: () => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => unsubscribe();
     }, []);
 
-    const signInWithGoogle = async () => {
+    const login = async () => {
         try {
             await signInWithPopup(auth, googleProvider);
         } catch (error) {
@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, signInWithGoogle, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout }}>
             {children}
         </AuthContext.Provider>
     );
