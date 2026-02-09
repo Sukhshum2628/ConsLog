@@ -11,8 +11,11 @@ import { exportToExcel, exportToPDF } from './utils/export';
 import { format } from 'date-fns';
 import { Download, History, Settings, Wifi, WifiOff } from 'lucide-react';
 import type { TrainLog } from './db';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { SecurityCheck } from './components/SecurityCheck';
+import { BrowserRouter as Router } from 'react-router-dom'; // Assuming we might use router later, or just wrap
 
+// Inner App component that uses Context
 function InnerApp() {
   const [hasOnboarded, setHasOnboarded] = useState<boolean>(() => {
     return localStorage.getItem('timeLog_hasOnboarded') === 'true';
@@ -26,9 +29,9 @@ function InnerApp() {
     updateEntry,
     activeLog,
     totalHaltTime
-  } = useTrainLog(); // No lobbyId arg needed
+  } = useTrainLog();
 
-  const { user } = useAuth(); // We can access user directly now
+  const { user } = useAuth();
 
   const [showHistory, setShowHistory] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
@@ -179,7 +182,7 @@ function InnerApp() {
 
       {showSettings && (
         <SettingsModal
-          isOpen={showSettings} // Fixed prop name
+          isOpen={showSettings}
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -190,7 +193,9 @@ function InnerApp() {
 function App() {
   return (
     <AuthProvider>
-      <InnerApp />
+      <SecurityCheck>
+        <InnerApp />
+      </SecurityCheck>
     </AuthProvider>
   );
 }
