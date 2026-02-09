@@ -54,11 +54,40 @@ function InnerApp() {
     setShowExportOptions(true);
   };
 
+  /* New State for Profile */
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user) {
+        // We could duplicate logic or use a helper. 
+        // To avoid complex imports cycle, let's just use direct firebase here if needed?
+        // Or better: The AuthContext or a useProfile hook.
+        // For now, let's try to export just the basic info we have in 'user'.
+        // NOTE: user.displayName is available.
+        // To get 'company', we need firestore.
+        // Let's do a quick fetch
+        try {
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { db } = await import('./lib/firebase');
+          const snap = await getDoc(doc(db, 'users', user.uid));
+          if (snap.exists()) {
+            setUserProfile(snap.data());
+          }
+        } catch (e) {
+          console.error("Profile fetch error", e);
+        }
+      }
+    };
+    fetchProfile();
+  }, [user]);
+
+
   const processExport = (type: 'excel' | 'pdf') => {
     if (type === 'excel') {
       exportToExcel(logs);
     } else {
-      exportToPDF(logs);
+      exportToPDF(logs, userProfile || { displayName: user?.displayName });
     }
   };
 
