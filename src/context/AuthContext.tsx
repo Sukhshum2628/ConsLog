@@ -1,14 +1,33 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { signInWithPopup, signOut, onAuthStateChanged, type User, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import {
+    User,
+    GoogleAuthProvider,
+    signInWithCredential,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    sendEmailVerification,
+    updatePassword,
+    fetchSignInMethodsForEmail,
+    EmailAuthProvider,
+    linkWithCredential,
+    reauthenticateWithCredential
+} from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { auth } from '../lib/firebase';
 import { Capacitor } from '@capacitor/core';
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: () => Promise<void>;
+    signInWithGoogle: () => Promise<void>;
+    signInWithEmail: (email: string, pass: string) => Promise<void>;
+    signUpWithEmail: (email: string, pass: string) => Promise<void>;
     logout: () => Promise<void>;
+    sendVerification: () => Promise<void>;
+    setUserPassword: (pass: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,21 +49,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => unsubscribe();
     }, []);
 
-    const login = async () => {
+    const signInWithGoogle = async () => {
         try {
             if (Capacitor.getPlatform() === 'web') {
                 // Web fallback
-                await signInWithPopup(auth, googleProvider);
+                const provider = new GoogleAuthProvider();
+                await signInWithPopup(auth, provider);
             } else {
                 // Native Login
                 const googleUser = await GoogleAuth.signIn();
-                // Create credential for Firebase
                 const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
                 await signInWithCredential(auth, credential);
             }
         } catch (error: any) {
-            console.error("Login Failed", error);
-            alert(`Login Error: ${error.message || JSON.stringify(error)}`);
+            console.error("Google Sign-In Failed:", error);
+            throw error;
+        }
+    };
+
+    const signInWithEmail = async (email: string, pass: string) => {
+        await signInWithEmailAndPassword(auth, email, pass);
+    };
+
+    const signUpWithEmail = async (email: string, pass: string) => {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+        // Automatically send verification email on sign up
+        await sendEmailVerification(userCredential.user);
+    };
+
+    const sendVerification = async () => {
+        if (user) {
+            await sendEmailVerification(user);
+        }
+    };
+
+    const setUserPassword = async (pass: string) => {
+        if (user) {
+            await updatePassword(user, pass);
         }
     };
 
@@ -60,7 +101,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{
+            user,
+            loading,
+            signInWithGoogle,
+            signInWithEmail,
+            signUpWithEmail,
+            logout,
+            sendVerification,
+            setUserPassword
+        }}>
             {children}
         </AuthContext.Provider>
     );
