@@ -138,29 +138,67 @@ export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fi
 export const exportToExcel = async (logs: ExportLog[], fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
     try {
         // 1. Prepare Data
-        const data = logs.map(log => ({
-            'User': log.owner || 'Me',
-            'Arrival Time': format(log.arrival_timestamp, 'HH:mm:ss'),
-            'Departure Time': log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm:ss') : '--',
-            'Halt Duration': log.halt_duration_seconds
-                ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8)
-                : 'RUNNING',
-            'Date': format(log.arrival_timestamp, 'yyyy-MM-dd'),
-            'Status': log.status
-        }));
+        // 1. Group Logs by Owner
+        const groupedLogs: Record<string, ExportLog[]> = {};
+        logs.forEach(log => {
+            const owner = log.owner || 'My Logs';
+            if (!groupedLogs[owner]) groupedLogs[owner] = [];
+            groupedLogs[owner].push(log);
+        });
 
-        // Add Total Row
+        const data: any[] = [];
+
+        // 2. Iterate Groups
+        Object.keys(groupedLogs).forEach(owner => {
+            const ownerLogs = groupedLogs[owner];
+
+            // Calculate User Total
+            const userTotalSeconds = ownerLogs.reduce((sum, l) => sum + (l.halt_duration_seconds || 0), 0);
+            const userTotalFormatted = new Date(userTotalSeconds * 1000).toISOString().substr(11, 8);
+
+            // Add Group Header Row? Or just fill "User" column? 
+            // Let's fill "User" column for every row for sorting, 
+            // BUT ALSO add a summary row at the bottom.
+
+            ownerLogs.forEach(log => {
+                data.push({
+                    'User': owner,
+                    'Start Time': format(log.arrival_timestamp, 'HH:mm:ss'),
+                    'End Time': log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm:ss') : '--',
+                    'Halt Duration': log.halt_duration_seconds
+                        ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8)
+                        : 'RUNNING',
+                    'Date': format(log.arrival_timestamp, 'yyyy-MM-dd'),
+                    'Status': log.status
+                });
+            });
+
+            // Add Subtotal Row for this User
+            data.push({
+                'User': `${owner} TOTAL`,
+                'Start Time': '',
+                'End Time': '',
+                'Halt Duration': userTotalFormatted,
+                'Date': '',
+                'Status': ''
+            });
+
+            // Add Spacer Row
+            data.push({});
+        });
+
+        // 3. Grand Total
         const grandTotalSeconds = logs.reduce((sum, l) => sum + (l.halt_duration_seconds || 0), 0);
         const grandTotalFormatted = new Date(grandTotalSeconds * 1000).toISOString().substr(11, 8);
 
         data.push({
             'User': 'GRAND TOTAL',
-            'Arrival Time': '',
-            'Departure Time': '',
+            'Start Time': '',
+            'End Time': '',
             'Halt Duration': grandTotalFormatted,
             'Date': '',
             'Status': ''
-        } as any);
+        });
 
         // 2. Create Workbook
         const ws = XLSX.utils.json_to_sheet(data);

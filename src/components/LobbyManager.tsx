@@ -84,95 +84,106 @@ export const LobbyManager: React.FC<LobbyManagerProps> = ({ currentLobbyId, onJo
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-6 relative">
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                    <span className="sr-only">Close</span>
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-
-                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    <Users className="w-6 h-6 text-blue-600" />
-                    {currentLobbyId ? 'Current Session' : 'Team Sync'}
-                </h2>
-
-                {currentLobbyId ? (
-                    <div className="space-y-6">
-                        <div className="text-center bg-green-50 p-6 rounded-2xl border-2 border-green-100 border-dashed">
-                            <p className="text-sm text-green-700 font-semibold mb-2 uppercase tracking-wide">LOBBY CODE</p>
-                            <div className="flex items-center justify-center gap-3">
-                                <span className="text-5xl font-mono font-bold text-gray-800 tracking-widest">{currentLobbyId}</span>
-                                <button onClick={copyToClipboard} className="p-2 hover:bg-green-100 rounded-lg transition-colors">
-                                    {copied ? <Check className="w-6 h-6 text-green-600" /> : <Copy className="w-6 h-6 text-gray-400" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <p className="text-center text-sm text-gray-500">
-                            Share this code with your team to log data together in real-time.
-                        </p>
-
-                        <button
-                            onClick={onLeaveLobby}
-                            className="w-full py-3 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-700 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
-                        >
-                            <LogOut className="w-5 h-5" />
-                            Leave Lobby
-                        </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative animate-in zoom-in-95 duration-200 border border-white/20">
+                <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <Users className="w-6 h-6 text-blue-600" />
+                            {currentLobbyId ? 'Active Session' : 'Team Sync'}
+                        </h2>
+                        <p className="text-sm text-gray-500">Collaborate with your crew</p>
                     </div>
-                ) : (
-                    <div className="space-y-6">
-                        {/* Join Section */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Join Existing Lobby</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={joinCode}
-                                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                                    placeholder="Enter 4-digit code"
-                                    maxLength={4}
-                                    className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 font-mono text-lg uppercase focus:border-blue-500 focus:outline-none"
-                                />
-                                <button
-                                    onClick={handleJoinLobby}
-                                    disabled={loading || joinCode.length !== 4}
-                                    className="bg-blue-600 text-white rounded-xl px-4 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    <ArrowRight className="w-6 h-6" />
-                                </button>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                        <X className="w-6 h-6" /> // Replaced SVG with Lucide X
+                    </button>
+                </div>
+
+                <div className="p-6">
+                    {currentLobbyId ? (
+                        <div className="space-y-6">
+                            <div className="text-center bg-gradient-to-br from-green-50 to-white p-8 rounded-3xl border border-green-100 shadow-sm relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <Users size={100} className="text-green-600" />
+                                </div>
+                                <p className="text-xs text-green-600 font-bold mb-3 uppercase tracking-widest">Lobby Code</p>
+                                <div className="flex items-center justify-center gap-4 relative z-10">
+                                    <span className="text-5xl font-mono font-black text-gray-900 tracking-widest drop-shadow-sm">{currentLobbyId}</span>
+                                    <button onClick={copyToClipboard} className="p-3 bg-white hover:bg-green-50 rounded-xl shadow-sm border border-gray-100 transition-all active:scale-95">
+                                        {copied ? <Check className="w-6 h-6 text-green-600" /> : <Copy className="w-6 h-6 text-gray-400" />}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="relative flex items-center py-2">
-                            <div className="flex-grow border-t border-gray-200"></div>
-                            <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">OR</span>
-                            <div className="flex-grow border-t border-gray-200"></div>
-                        </div>
+                            <p className="text-center text-sm text-gray-500 px-4">
+                                Share this code with your team. Logs added by anyone will appear instantly for everyone.
+                            </p>
 
-                        {/* Create Section */}
-                        <button
-                            onClick={handleCreateLobby}
-                            disabled={loading}
-                            className="w-full py-4 bg-gray-900 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 transition-transform active:scale-95 shadow-lg"
-                        >
-                            {loading ? (
-                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                <>
-                                    <Plus className="w-5 h-5" />
-                                    Create New Lobby
-                                </>
+                            <button
+                                onClick={onLeaveLobby}
+                                className="w-full py-4 bg-gray-50 hover:bg-red-50 hover:text-red-600 text-gray-600 font-bold rounded-2xl flex items-center justify-center gap-2 transition-all border border-gray-100 hover:border-red-100"
+                            >
+                                <LogOut className="w-5 h-5" />
+                                Leave Lobby
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-8">
+                            {/* Join Section */}
+                            <div className="space-y-3">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Join a Squad</label>
+                                <div className="flex gap-3">
+                                    <input
+                                        type="text"
+                                        value={joinCode}
+                                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                                        placeholder="Enter 4-digit code"
+                                        maxLength={4}
+                                        className="flex-1 bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl px-5 py-4 font-mono text-2xl uppercase text-center tracking-widest outline-none transition-all placeholder:text-gray-300"
+                                    />
+                                    <button
+                                        onClick={handleJoinLobby}
+                                        disabled={loading || joinCode.length !== 4}
+                                        className="bg-blue-600 text-white rounded-2xl px-6 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/30 active:scale-95 flex items-center justify-center"
+                                    >
+                                        {loading ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <ArrowRight className="w-6 h-6" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="relative flex items-center">
+                                <div className="flex-grow border-t border-gray-200"></div>
+                                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-bold uppercase">Or start fresh</span>
+                                <div className="flex-grow border-t border-gray-200"></div>
+                            </div>
+
+                            {/* Create Section */}
+                            <button
+                                onClick={handleCreateLobby}
+                                disabled={loading}
+                                className="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-xl shadow-gray-900/20"
+                            >
+                                {loading ? (
+                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <div className="p-1 bg-white/20 rounded-lg">
+                                            <Plus className="w-5 h-5" />
+                                        </div>
+                                        Create New Lobby
+                                    </>
+                                )}
+                            </button>
+
+                            {error && (
+                                <div className="text-red-500 text-sm font-medium text-center bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center justify-center gap-2 animate-in slide-in-from-top-2">
+                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                    {error}
+                                </div>
                             )}
-                        </button>
-
-                        {error && (
-                            <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">{error}</p>
-                        )}
-                    </div>
-                )}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

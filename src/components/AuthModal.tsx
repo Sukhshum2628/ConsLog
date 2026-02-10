@@ -68,28 +68,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl animate-scale-up">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-white/20">
                 {/* Header */}
-                <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-800">
-                        {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full">
-                        <X size={20} />
-                    </button>
+                <div className="p-6 bg-gradient-to-br from-blue-600 to-blue-700 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <Lock size={100} />
+                    </div>
+                    <div className="relative z-10 flex justify-between items-start">
+                        <div>
+                            <h2 className="text-2xl font-bold mb-1">
+                                {mode === 'signin' ? 'Welcome Back' : 'Join ConsLogger'}
+                            </h2>
+                            <p className="text-blue-100 text-sm">
+                                {mode === 'signin' ? 'Sign in to access your logs' : 'Create an account to get started'}
+                            </p>
+                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex p-1 bg-gray-100 m-4 rounded-lg">
+                <div className="flex p-2 bg-gray-50 border-b border-gray-100">
                     <button
-                        className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${mode === 'signin' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}
+                        className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${mode === 'signin' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
                         onClick={() => { setMode('signin'); setError(''); setSuccessMsg(''); }}
                     >
                         Sign In
                     </button>
                     <button
-                        className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${mode === 'signup' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}
+                        className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${mode === 'signup' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
                         onClick={() => { setMode('signup'); setError(''); setSuccessMsg(''); }}
                     >
                         Sign Up
@@ -97,92 +107,81 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                <form onSubmit={handleSubmit} className="p-6 space-y-5">
                     {error && (
-                        <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
-                            <span className="font-bold">!</span> {error}
+                        <div className="p-4 bg-red-50 text-red-600 text-sm rounded-2xl border border-red-100 flex items-center gap-2 animate-in slide-in-from-top-2">
+                            <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span> {error}
                         </div>
                     )}
                     {successMsg && (
-                        <div className="p-3 bg-green-50 text-green-600 text-sm rounded-lg border border-green-100 flex items-center gap-2">
+                        <div className="p-4 bg-green-50 text-green-600 text-sm rounded-2xl border border-green-100 flex items-center gap-2 animate-in slide-in-from-top-2">
                             <Check size={16} /> {successMsg}
                         </div>
                     )}
 
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <div className="space-y-4">
+                        <div className="relative group">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                             <input
                                 type="email"
                                 required
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                placeholder="name@example.com"
+                                className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 focus:outline-none transition-all font-medium placeholder:text-gray-400"
+                                placeholder="Email Address"
                             />
                         </div>
-                    </div>
 
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <div className="relative group">
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                             <input
                                 type="password"
                                 required
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                placeholder="••••••••"
+                                className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 focus:outline-none transition-all font-medium placeholder:text-gray-400"
+                                placeholder="Password"
                             />
                         </div>
-                    </div>
 
-                    {mode === 'signup' && (
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Confirm Password</label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        {mode === 'signup' && (
+                            <div className="relative group animate-in slide-in-from-top-5">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                                 <input
                                     type="password"
                                     required
                                     value={confirmPass}
                                     onChange={e => setConfirmPass(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                    placeholder="••••••••"
+                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 focus:outline-none transition-all font-medium placeholder:text-gray-400"
+                                    placeholder="Confirm Password"
                                 />
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-200 disabled:opacity-50"
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:scale-100"
                     >
                         {loading ? 'Processing...' : (mode === 'signin' ? 'Sign In' : 'Create Account')}
                     </button>
-                </form>
 
-                {/* Divider */}
-                <div className="flex items-center gap-4 px-4 py-2">
-                    <div className="h-px flex-1 bg-gray-200"></div>
-                    <span className="text-xs text-gray-400 font-medium">OR CONTINUE WITH</span>
-                    <div className="h-px flex-1 bg-gray-200"></div>
-                </div>
+                    <div className="relative flex items-center py-2">
+                        <div className="h-px flex-1 bg-gray-100"></div>
+                        <span className="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Or continue with</span>
+                        <div className="h-px flex-1 bg-gray-100"></div>
+                    </div>
 
-                {/* Google Button */}
-                <div className="p-4 pt-0">
                     <button
                         onClick={handleGoogle}
                         disabled={loading}
-                        className="w-full py-3 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 text-gray-700 font-bold rounded-xl transition-all flex items-center justify-center gap-3"
+                        className="w-full py-4 bg-white border-2 border-gray-100 hover:bg-gray-50 hover:border-gray-200 active:scale-95 text-gray-700 font-bold rounded-2xl transition-all flex items-center justify-center gap-3 relative overflow-hidden"
                     >
-                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
-                        Google
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 relative z-10" alt="Google" />
+                        <span className="relative z-10">Google</span>
                     </button>
-                </div>
+                </form>
             </div>
         </div>
     );
