@@ -86,11 +86,24 @@ function InnerApp() {
   }, [user]);
 
 
-  const processExport = (type: 'excel' | 'pdf') => {
+  /* New: Export Logic with Combined Logs */
+  const processExport = (type: 'excel' | 'pdf', includeTeamLogs: boolean) => {
+    let logsToExport = logs.map(l => ({ ...l, owner: user?.displayName || 'Me' }));
+
+    if (includeTeamLogs && partnerLogs.length > 0) {
+      partnerLogs.forEach(partner => {
+        const partnerEntries = partner.logs.map(l => ({ ...l, owner: partner.displayName }));
+        logsToExport = [...logsToExport, ...partnerEntries];
+      });
+    }
+
+    // Sort combined logs by arrival time
+    logsToExport.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
+
     if (type === 'excel') {
-      exportToExcel(logs);
+      exportToExcel(logsToExport);
     } else {
-      exportToPDF(logs, userProfile || { displayName: user?.displayName });
+      exportToPDF(logsToExport, userProfile || { displayName: user?.displayName });
     }
   };
 

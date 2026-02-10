@@ -13,7 +13,11 @@ export interface ExportProfile {
     designation?: string;
 }
 
-export const exportToPDF = async (logs: TrainLog[], profile?: ExportProfile, fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
+export interface ExportLog extends TrainLog {
+    owner?: string;
+}
+
+export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
     try {
         const doc = new jsPDF();
 
@@ -30,12 +34,11 @@ export const exportToPDF = async (logs: TrainLog[], profile?: ExportProfile, fil
         doc.setFont('helvetica', 'normal');
         doc.text(`Generated on: ${format(new Date(), 'PPP p')}`, 14, 30);
 
-        // 2. Profile Info (Right Side of Header)
+        // 2. Profile Info
         if (profile) {
             const rightMargin = 196;
             doc.setFontSize(12);
             doc.text(profile.displayName || 'User', rightMargin, 15, { align: 'right' });
-
             if (profile.designation) {
                 doc.setFontSize(10);
                 doc.text(profile.designation, rightMargin, 22, { align: 'right' });
@@ -46,22 +49,65 @@ export const exportToPDF = async (logs: TrainLog[], profile?: ExportProfile, fil
             }
         }
 
-        // 3. Table Data
-        const tableData = logs.map(log => [
-            format(log.arrival_timestamp, 'HH:mm'),
-            log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm') : '--',
-            log.halt_duration_seconds ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8) : 'RUNNING'
-        ]);
-
-        autoTable(doc, {
-            head: [['Arrival', 'Departure', 'Halt Duration']],
-            body: tableData,
-            startY: 50,
-            theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-            alternateRowStyles: { fillColor: [245, 245, 245] },
-            styles: { fontSize: 10, cellPadding: 3 }
+        // 3. Group Logs by Owner
+        const groupedLogs: Record<string, ExportLog[]> = {};
+        logs.forEach(log => {
+            const owner = log.owner || 'My Logs';
+            if (!groupedLogs[owner]) groupedLogs[owner] = [];
+            groupedLogs[owner].push(log);
         });
+
+        let currentY = 50;
+
+        // 4. Iterate Groups
+        Object.keys(groupedLogs).forEach(owner => {
+            const ownerLogs = groupedLogs[owner];
+
+            // Calculate User Total
+            const userTotalSeconds = ownerLogs.reduce((sum, l) => sum + (l.halt_duration_seconds || 0), 0);
+            const userTotalFormatted = new Date(userTotalSeconds * 1000).toISOString().substr(11, 8);
+
+            // Group Header
+            doc.setFontSize(14);
+            doc.setTextColor(41, 128, 185);
+            doc.text(`${owner} (Total Halt: ${userTotalFormatted})`, 14, currentY);
+            currentY += 5;
+
+            const tableData = ownerLogs.map(log => [
+                format(log.arrival_timestamp, 'HH:mm'),
+                log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm') : '--',
+                log.halt_duration_seconds ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8) : 'RUNNING'
+            ]);
+
+            autoTable(doc, {
+                head: [['Arrival', 'Departure', 'Halt Duration']],
+                body: tableData,
+                startY: currentY,
+                theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+                styles: { fontSize: 10, cellPadding: 3 },
+                margin: { bottom: 10 }
+            });
+
+            // Update Y for next table (autoTable exposes finalY)
+            currentY = (doc as any).lastAutoTable.finalY + 15;
+
+            // Page break check if needed (autoTable handles it mostly, but title logic might overlap)
+            if (currentY > 270) {
+                doc.addPage();
+                currentY = 20;
+            }
+        });
+
+        // 5. Grand Total Footer
+        const grandTotalSeconds = logs.reduce((sum, l) => sum + (l.halt_duration_seconds || 0), 0);
+        const grandTotalFormatted = new Date(grandTotalSeconds * 1000).toISOString().substr(11, 8);
+
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`GRAND TOTAL HALT TIME: ${grandTotalFormatted}`, 14, currentY);
 
         const pdfOutput = doc.output('datauristring');
         const base64Data = pdfOutput.split(',')[1];
@@ -80,7 +126,6 @@ export const exportToPDF = async (logs: TrainLog[], profile?: ExportProfile, fil
                 dialogTitle: 'Share PDF',
             });
         } else {
-            // Web Fallback
             doc.save(`${fileName}.pdf`);
         }
 
@@ -90,10 +135,11 @@ export const exportToPDF = async (logs: TrainLog[], profile?: ExportProfile, fil
     }
 };
 
-export const exportToExcel = async (logs: TrainLog[], fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
+export const exportToExcel = async (logs: ExportLog[], fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
     try {
         // 1. Prepare Data
         const data = logs.map(log => ({
+            'User': log.owner || 'Me',
             'Arrival Time': format(log.arrival_timestamp, 'HH:mm:ss'),
             'Departure Time': log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm:ss') : '--',
             'Halt Duration': log.halt_duration_seconds
@@ -102,6 +148,19 @@ export const exportToExcel = async (logs: TrainLog[], fileName: string = `TimeLo
             'Date': format(log.arrival_timestamp, 'yyyy-MM-dd'),
             'Status': log.status
         }));
+
+        // Add Total Row
+        const grandTotalSeconds = logs.reduce((sum, l) => sum + (l.halt_duration_seconds || 0), 0);
+        const grandTotalFormatted = new Date(grandTotalSeconds * 1000).toISOString().substr(11, 8);
+
+        data.push({
+            'User': 'GRAND TOTAL',
+            'Arrival Time': '',
+            'Departure Time': '',
+            'Halt Duration': grandTotalFormatted,
+            'Date': '',
+            'Status': ''
+        });
 
         // 2. Create Workbook
         const ws = XLSX.utils.json_to_sheet(data);
@@ -126,7 +185,6 @@ export const exportToExcel = async (logs: TrainLog[], fileName: string = `TimeLo
                 dialogTitle: 'Share Excel',
             });
         } else {
-            // Web Fallback
             XLSX.writeFile(wb, `${fileName}.xlsx`);
         }
     } catch (e) {
