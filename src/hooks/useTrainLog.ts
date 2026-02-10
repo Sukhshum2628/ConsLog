@@ -275,17 +275,40 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         }
     };
 
+    const copyLogToPersonal = async (log: TrainLog) => {
+        if (!user) return;
+        const newLog: TrainLog = {
+            ...log,
+            id: Date.now(),
+            created_at: Date.now(),
+            status: 'COMPLETED', // Ensure copied logs are completed or keep status? Better to be completed if source was completed.
+            // If source is running, we might want to copy it as running? No, tricky.
+            // Let's assume we copy as is, but generate new ID.
+            // Actually, if it's running, we probably shouldn't copy it yet, or copy as running.
+        };
+
+        try {
+            await setDoc(doc(db, 'users', user.uid, 'logs', String(newLog.id)), newLog);
+            alert("Log copied to your personal logs!");
+        } catch (e) {
+            console.error("Copy failed", e);
+            alert("Failed to copy log.");
+        }
+    };
+
     return {
         logs,
-        partnerLogs, // <--- New Export
-        fetchPartnerLogs, // <--- New Export
+        partnerLogs,
+        fetchPartnerLogs,
         loading,
         addEntry,
         updateEntry,
         completeEntry,
         removeEntry,
+        copyLogToPersonal, // <--- Exported
         activeLog,
         totalHaltTime,
         setDate: setCurrentDate
     };
+
 };

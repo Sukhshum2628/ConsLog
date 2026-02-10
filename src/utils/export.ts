@@ -7,19 +7,46 @@ import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import type { TrainLog } from '../db';
 
-export const exportToPDF = async (logs: TrainLog[], fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
+export interface ExportProfile {
+    displayName?: string;
+    company?: string;
+    designation?: string;
+}
+
+export const exportToPDF = async (logs: TrainLog[], profile?: ExportProfile, fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
     try {
         const doc = new jsPDF();
 
-        // Title
-        doc.setFontSize(18);
-        doc.text('TimeLog Report', 14, 22);
+        // 1. Header Section
+        doc.setFillColor(41, 128, 185); // Blue header
+        doc.rect(0, 0, 210, 40, 'F');
 
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(`Generated on: ${format(new Date(), 'PPpp')}`, 14, 30);
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('TimeLog Report', 14, 20);
 
-        // Table Data
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Generated on: ${format(new Date(), 'PPP p')}`, 14, 30);
+
+        // 2. Profile Info (Right Side of Header)
+        if (profile) {
+            const rightMargin = 196;
+            doc.setFontSize(12);
+            doc.text(profile.displayName || 'User', rightMargin, 15, { align: 'right' });
+
+            if (profile.designation) {
+                doc.setFontSize(10);
+                doc.text(profile.designation, rightMargin, 22, { align: 'right' });
+            }
+            if (profile.company) {
+                doc.setFontSize(10);
+                doc.text(profile.company, rightMargin, 29, { align: 'right' });
+            }
+        }
+
+        // 3. Table Data
         const tableData = logs.map(log => [
             format(log.arrival_timestamp, 'HH:mm'),
             log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm') : '--',
@@ -29,14 +56,14 @@ export const exportToPDF = async (logs: TrainLog[], fileName: string = `TimeLog_
         autoTable(doc, {
             head: [['Arrival', 'Departure', 'Halt Duration']],
             body: tableData,
-            startY: 40,
+            startY: 50,
             theme: 'grid',
             headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-            alternateRowStyles: { fillColor: [245, 245, 245] }
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            styles: { fontSize: 10, cellPadding: 3 }
         });
 
         const pdfOutput = doc.output('datauristring');
-        // Remove prefix "data:application/pdf;filename=generated.pdf;base64,"
         const base64Data = pdfOutput.split(',')[1];
 
         if (Capacitor.isNativePlatform()) {
@@ -48,7 +75,7 @@ export const exportToPDF = async (logs: TrainLog[], fileName: string = `TimeLog_
 
             await Share.share({
                 title: 'TimeLog Export',
-                text: 'Here is your TimeLog PDF report.',
+                text: `Here is the TimeLog report for ${format(new Date(), 'PPP')}`,
                 url: savedFile.uri,
                 dialogTitle: 'Share PDF',
             });
@@ -59,7 +86,7 @@ export const exportToPDF = async (logs: TrainLog[], fileName: string = `TimeLog_
 
     } catch (error) {
         console.error('PDF Export Error:', error);
-        alert('Failed to export PDF');
+        alert('Failed to export PDF: ' + (error as any).message);
     }
 };
 
