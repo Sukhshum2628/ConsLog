@@ -139,7 +139,10 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
 
             // Filter by Site if a scope is defined and strict
             if (syncedSiteId && syncedSiteId !== 'all') {
+                console.log(`[Fetch] Applying Site Filter: ${syncedSiteId}`);
                 constraints.push(where('siteId', '==', syncedSiteId));
+            } else {
+                console.log(`[Fetch] No specific site filter (Scope: ${syncedSiteId})`);
             }
 
             const q = query(
@@ -224,6 +227,7 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
                     // But we don't want to loop infinite.
                     // This listener fires on Metadata update (Switch Site).
                     // So YES, we want to re-fetch when this fires.
+                    console.log(`[Listener] Update from ${conn.username}: SyncedSiteId=${conn.syncedSiteId}`);
 
                     fetchPartnerLogs(connUid, conn.username, conn.displayName, conn.syncedSiteId);
 

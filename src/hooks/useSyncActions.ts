@@ -190,8 +190,9 @@ export const useSyncActions = () => {
 
             await batch.commit();
             // showAlert({ title: 'Sync Updated', message: 'Partners notified of site change.', type: 'info' });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Broadcast failed:", error);
+            await showAlert({ title: 'Sync Update Failed', message: 'Could not notify partners: ' + error.message, type: 'danger' });
         }
     }, [user]);
 

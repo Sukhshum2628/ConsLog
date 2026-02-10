@@ -280,7 +280,7 @@ function InnerApp() {
                         )}
                       </div>
                       <button
-                        onClick={() => fetchPartnerLogs(partner.uid, partner.username, partner.displayName)}
+                        onClick={() => fetchPartnerLogs(partner.uid, partner.username, partner.displayName, partner.syncedSiteId)}
                         className="flex items-center gap-1 text-[10px] bg-white border border-blue-200 text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-100 transition-colors"
                       >
                         <RefreshCw size={12} />
