@@ -14,6 +14,13 @@ export interface PartnerData {
     lastSyncedAt: Date | null;
 }
 
+interface ConnectionData {
+    uid?: string;
+    username: string;
+    displayName: string;
+    [key: string]: any;
+}
+
 export const useTrainLog = (lobbyId: string | null = null) => {
     const { user } = useAuth();
     const [logs, setLogs] = useState<TrainLog[]>([]);
@@ -153,7 +160,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
 
         // Listen to my connections
         const unsubConn = onSnapshot(collection(db, 'users', user.uid, 'connections'), (snap) => {
-            const connections = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+            const connections = snap.docs.map(d => ({ uid: d.id, ...d.data() } as ConnectionData));
 
             // Initialize partner entries if not exist
             setPartnerLogs(prev => {
