@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react';
 import { addLog, updateLog, deleteLog, getLogsByDate, getAllLogs, type TrainLog } from '../db';
 import { db } from '../lib/firebase';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where, writeBatch, getDocs } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
+
+// Types
+export interface PartnerData {
+    uid: string;
+    username: string;
+    displayName: string;
+    logs: TrainLog[];
+    lastSyncedAt: Date | null;
+}
 
 export const useTrainLog = (lobbyId: string | null = null) => {
     const { user } = useAuth();
     const [logs, setLogs] = useState<TrainLog[]>([]);
+    const [partnerLogs, setPartnerLogs] = useState<PartnerData[]>([]); // New State
     const [loading, setLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -19,7 +29,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         return total + (log.halt_duration_seconds || 0);
     }, 0);
 
-    // Migration Logic: Local -> Cloud
+    // Migration Logic: Local -> Cloud (Existing)
     useEffect(() => {
         const migrateLogs = async () => {
             if (user && !lobbyId) {
@@ -35,12 +45,6 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                     try {
                         await batch.commit();
                         console.log("Migration Complete. Clearing local DB.");
-                        // Optional: Clear local DB after successful migration
-                        // await clearDB(); // Need to implement clearDB if we want this
-                        // For now, we leave them as "backup" or manually delete?
-                        // Actually, if we leave them, "Guest Mode" will still show them. 
-                        // Let's keep them for safety, but maybe mark them? 
-                        // User wants "Forever Data". Cloud is forever. 
                     } catch (e) {
                         console.error("Migration Failed", e);
                     }
@@ -50,60 +54,46 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         migrateLogs();
     }, [user, lobbyId]);
 
-    // Load Data (Listener)
+    // 1. Load MY Data (Real-time Listener)
     useEffect(() => {
         setLoading(true);
         const dateStr = format(currentDate, 'yyyy-MM-dd');
 
-        // 1. LOBBY MODE (Shared)
+        // LOBBY MODE (Shared - Legacy/Fallback if used)
         if (lobbyId) {
             const q = query(
                 collection(db, 'lobbies', lobbyId, 'logs'),
                 where('date', '==', dateStr)
             );
-
             const unsubscribe = onSnapshot(q, (snapshot) => {
-                const remoteLogs = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                } as TrainLog));
-                // Client-side sort
+                const remoteLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
                 remoteLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
                 setLogs(remoteLogs);
-                setLoading(false);
-            }, (err) => {
-                console.error("Lobby Sync Error:", err);
-                // alert("Sync Error: " + err.message); // Optional: Enable if needed
                 setLoading(false);
             });
             return () => unsubscribe();
         }
 
-        // 2. USER CLOUD MODE (Private)
+        // USER CLOUD MODE (Private)
         else if (user) {
             const q = query(
                 collection(db, 'users', user.uid, 'logs'),
                 where('date', '==', dateStr)
             );
-
             const unsubscribe = onSnapshot(q, (snapshot) => {
-                const cloudLogs = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                } as TrainLog));
-                // Client-side sort
+                const cloudLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
                 cloudLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
                 setLogs(cloudLogs);
                 setLoading(false);
             }, (err) => {
                 console.error("Cloud Sync Error:", err);
-                alert("Sync Error: " + err.message); // Alert user to real-time errors
+                // alert("Sync Error: " + err.message);
                 setLoading(false);
             });
             return () => unsubscribe();
         }
 
-        // 3. GUEST MODE (Local)
+        // GUEST MODE (Local)
         else {
             const loadLocal = async () => {
                 try {
@@ -119,8 +109,87 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         }
     }, [lobbyId, currentDate, user]);
 
+
+    // 2. PARTNER LOGS LOGIC
+    // Helper to fetch logs for a specific partner
+    const fetchPartnerLogs = async (partnerUid: string, partnerName: string, partnerDisplay: string) => {
+        if (!user) return;
+        const dateStr = format(currentDate, 'yyyy-MM-dd');
+        console.log(`Fetching logs for ${partnerName}...`);
+
+        try {
+            const q = query(
+                collection(db, 'users', partnerUid, 'logs'),
+                where('date', '==', dateStr)
+            );
+            // Use getDocs for one-time fetch (Manual Sync / Interval)
+            const { getDocs } = await import('firebase/firestore'); // Dynamic import to avoid top-level if needed, or just use standard
+            const snapshot = await getDocs(q);
+            const pLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
+            pLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
+
+            setPartnerLogs(prev => {
+                // Remove existing entry for this partner if any
+                const filtered = prev.filter(p => p.uid !== partnerUid);
+                return [...filtered, {
+                    uid: partnerUid,
+                    username: partnerName,
+                    displayName: partnerDisplay,
+                    logs: pLogs,
+                    lastSyncedAt: new Date()
+                }];
+            });
+        } catch (e) {
+            console.error(`Failed to fetch logs for ${partnerName}`, e);
+        }
+    };
+
+    // Listen to Connections & Auto-Sync
+    useEffect(() => {
+        if (!user || lobbyId) {
+            setPartnerLogs([]);
+            return;
+        }
+
+        // Listen to my connections
+        const unsubConn = onSnapshot(collection(db, 'users', user.uid, 'connections'), (snap) => {
+            const connections = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+
+            // Initialize partner entries if not exist
+            setPartnerLogs(prev => {
+                const newState = [...prev];
+                connections.forEach(conn => {
+                    if (!newState.find(p => p.uid === conn.uid)) {
+                        newState.push({
+                            uid: conn.uid,
+                            username: conn.username || 'User',
+                            displayName: conn.displayName || 'User',
+                            logs: [],
+                            lastSyncedAt: null
+                        });
+                        // Initial fetch
+                        fetchPartnerLogs(conn.uid, conn.username, conn.displayName);
+                    }
+                });
+                return newState;
+            });
+
+            // Set up Auto-Sync Interval (5 mins)
+            const intervalId = setInterval(() => {
+                connections.forEach(conn => {
+                    fetchPartnerLogs(conn.uid, conn.username, conn.displayName);
+                });
+            }, 5 * 60 * 1000); // 5 minutes
+
+            return () => clearInterval(intervalId);
+        });
+
+        return () => unsubConn();
+    }, [user, lobbyId, currentDate]); // Re-run if date changes to fetch new date's logs
+
+
     const addEntry = async () => {
-        // 1. Prevent multiple running timers
+        // ... (Same as before)
         const alreadyRunning = logs.find(l => l.status === 'RUNNING');
         if (alreadyRunning) {
             alert("A timer is already running! Please stop it first.");
@@ -130,15 +199,11 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         try {
             const newLog: TrainLog = {
                 id: Date.now(),
-                date: format(currentDate, 'yyyy-MM-dd'), // Use currentDate state to match listener
+                date: format(currentDate, 'yyyy-MM-dd'),
                 arrival_timestamp: Date.now(),
                 status: 'RUNNING',
                 created_at: Date.now()
             };
-
-            // Optimistic update for immediate feedback (optional, but Firestore is usually fast enough)
-            // But if there's lag, this helps prevents double-clicks visually if we managed state manually
-            // For now, relying on the check above is good.
 
             if (lobbyId) {
                 await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(newLog.id)), newLog);
@@ -147,7 +212,6 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                 await setDoc(logRef, newLog);
             } else {
                 await addLog(newLog);
-                // Refresh local
                 const dateStr = format(currentDate, 'yyyy-MM-dd');
                 const data = await getLogsByDate(dateStr);
                 setLogs(data.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp));
@@ -159,6 +223,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
     };
 
     const updateEntry = async (updatedLog: TrainLog) => {
+        // ... (Same as before)
         try {
             if (lobbyId) {
                 await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(updatedLog.id)), updatedLog);
@@ -176,14 +241,12 @@ export const useTrainLog = (lobbyId: string | null = null) => {
     const completeEntry = async (log: TrainLog) => {
         const departure = Date.now();
         const duration = Math.floor((departure - log.arrival_timestamp) / 1000);
-
         const completedLog: TrainLog = {
             ...log,
             departure_timestamp: departure,
             halt_duration_seconds: duration,
             status: 'COMPLETED'
         };
-
         await updateEntry(completedLog);
     };
 
@@ -200,6 +263,8 @@ export const useTrainLog = (lobbyId: string | null = null) => {
 
     return {
         logs,
+        partnerLogs, // <--- New Export
+        fetchPartnerLogs, // <--- New Export
         loading,
         addEntry,
         updateEntry,
