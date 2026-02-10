@@ -1,35 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Check, X as XIcon, RefreshCw, Trash2, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useModal } from '../context/ModalContext';
+import { useSyncActions, type SyncRequest } from '../hooks/useSyncActions';
 import {
     collection,
     query,
     where,
-    getDocs,
-    addDoc,
-    onSnapshot,
-    doc,
-    deleteDoc,
-    setDoc,
-    getDoc,
-    serverTimestamp
+    onSnapshot
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 interface SyncManagerProps {
     isOpen: boolean;
     onClose: () => void;
-}
-
-interface SyncRequest {
-    id: string;
-    fromUid: string;
-    fromUsername: string;
-    fromDisplayName?: string;
-    fromPhoto?: string;
-    status: 'pending' | 'accepted' | 'rejected';
-    timestamp: any;
 }
 
 interface ConnectedUser {
@@ -40,13 +23,11 @@ interface ConnectedUser {
 
 export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => {
     const { user } = useAuth();
-    const { showConfirm } = useModal();
+    const { sendRequest, acceptRequest, rejectRequest, disconnect, loading } = useSyncActions();
+
     const [targetUsername, setTargetUsername] = useState('');
-    const [loading, setLoading] = useState(false);
     const [requests, setRequests] = useState<SyncRequest[]>([]);
     const [connections, setConnections] = useState<ConnectedUser[]>([]);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
 
     useEffect(() => {
         if (!isOpen || !user) return;
@@ -76,115 +57,9 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
 
     const handleSendRequest = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || !targetUsername) return;
-        setLoading(true);
-        setError('');
-        setSuccess('');
-
-        try {
-            // 1. Find Target User by Username
-            const q = query(collection(db, 'users'), where('username', '==', targetUsername));
-            const snap = await getDocs(q);
-
-            if (snap.empty) {
-                throw new Error("User not found. Check the username.");
-            }
-
-            const targetUserDoc = snap.docs[0];
-            const targetUid = targetUserDoc.id;
-            const targetData = targetUserDoc.data();
-
-            if (targetUid === user.uid) {
-                throw new Error("You cannot sync with yourself.");
-            }
-
-            // 2. Check if already connected
-            const existingConn = await getDoc(doc(db, 'users', user.uid, 'connections', targetUid));
-            if (existingConn.exists()) {
-                throw new Error(`Already synced with ${targetData.displayName || targetUsername}`);
-            }
-
-            // 3. Send Request (Write to THEIR requests collection)
-            // We include OUR details so they know who is asking
-            // Need to fetch my own profile to get my username/photo
-            const myProfileSnap = await getDoc(doc(db, 'users', user.uid));
-            const myProfile = myProfileSnap.data();
-
-            await addDoc(collection(db, 'users', targetUid, 'requests'), {
-                fromUid: user.uid,
-                fromUsername: myProfile?.username || user.email,
-                fromDisplayName: myProfile?.displayName || user.displayName,
-                fromPhoto: user.photoURL || null,
-                status: 'pending',
-                timestamp: serverTimestamp()
-            });
-
-            setSuccess(`Request sent to ${targetData.displayName || targetUsername}!`);
+        const success = await sendRequest(targetUsername);
+        if (success) {
             setTargetUsername('');
-        } catch (err: any) {
-            console.error(err);
-            setError(err.message || "Failed to send request");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAccept = async (req: SyncRequest) => {
-        if (!user) return;
-        try {
-            // 1. Add to MY connections
-            await setDoc(doc(db, 'users', user.uid, 'connections', req.fromUid), {
-                uid: req.fromUid,
-                username: req.fromUsername,
-                displayName: req.fromUsername, // Fallback
-                connectedAt: new Date()
-            });
-
-            // 2. Add ME to THEIR connections (Bidirectional)
-            // Fetch my details again
-            const myProfileSnap = await getDoc(doc(db, 'users', user.uid));
-            const myProfile = myProfileSnap.data();
-
-            await setDoc(doc(db, 'users', req.fromUid, 'connections', user.uid), {
-                uid: user.uid,
-                username: myProfile?.username || 'Unknown',
-                displayName: myProfile?.displayName || 'Unknown',
-                connectedAt: new Date()
-            });
-
-            // 3. Delete the request
-            await deleteDoc(doc(db, 'users', user.uid, 'requests', req.id));
-            setSuccess(`You are now synced with ${req.fromUsername}`);
-        } catch (e) {
-            console.error(e);
-            setError("Failed to accept request");
-        }
-    };
-
-    const handleReject = async (reqId: string) => {
-        if (!user) return;
-        await deleteDoc(doc(db, 'users', user.uid, 'requests', reqId));
-    };
-
-    const handleDisconnect = async (targetUid: string) => {
-        if (!user) return;
-
-        const confirmed = await showConfirm({
-            title: 'Disconnect Partner',
-            message: 'Are you sure? This will remove shared logs and stop syncing.',
-            type: 'danger',
-            confirmText: 'Disconnect',
-            cancelText: 'Cancel'
-        });
-
-        if (!confirmed) return;
-
-        try {
-            // Remove from BOTH sides
-            await deleteDoc(doc(db, 'users', user.uid, 'connections', targetUid));
-            await deleteDoc(doc(db, 'users', targetUid, 'connections', user.uid));
-        } catch (e) {
-            console.error(e);
         }
     };
 
@@ -224,8 +99,6 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
                                 <UserPlus size={20} />
                             </button>
                         </form>
-                        {error && <div className="text-red-500 text-sm bg-red-50 p-3 rounded-xl border border-red-100 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>{error}</div>}
-                        {success && <div className="text-green-600 text-sm bg-green-50 p-3 rounded-xl border border-green-100 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>{success}</div>}
                     </div>
 
                     {/* Incoming Requests */}
@@ -249,13 +122,13 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
                                         </div>
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => handleAccept(req)}
+                                                onClick={() => acceptRequest(req)}
                                                 className="p-2 bg-green-500 text-white rounded-xl hover:bg-green-600 shadow-md shadow-green-500/20 transition-transform active:scale-95"
                                             >
                                                 <Check size={18} />
                                             </button>
                                             <button
-                                                onClick={() => handleReject(req.id)}
+                                                onClick={() => rejectRequest(req.id)}
                                                 className="p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 shadow-md shadow-red-500/20 transition-transform active:scale-95"
                                             >
                                                 <XIcon size={18} />
@@ -293,7 +166,7 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
                                             </div>
                                         </div>
                                         <button
-                                            onClick={() => handleDisconnect(conn.uid)}
+                                            onClick={() => disconnect(conn.uid)}
                                             className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                                             title="Disconnect"
                                         >

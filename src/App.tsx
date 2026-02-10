@@ -16,6 +16,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SecurityCheck } from './components/SecurityCheck';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+import { useSyncNotifications } from './hooks/useSyncNotifications';
+
 // Inner App component that uses Context
 function InnerApp() {
   const [hasOnboarded, setHasOnboarded] = useState<boolean>(() => {
@@ -23,6 +25,7 @@ function InnerApp() {
   });
 
   const { showAlert } = useModal();
+  useSyncNotifications(); // <--- LISTENER
 
   // Network Status
   const [isOnline, setIsOnline] = useState(navigator.onLine);
