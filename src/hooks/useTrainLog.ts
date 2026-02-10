@@ -166,9 +166,12 @@ export const useTrainLog = (lobbyId: string | null = null) => {
             setPartnerLogs(prev => {
                 const newState = [...prev];
                 connections.forEach(conn => {
-                    if (!newState.find(p => p.uid === conn.uid)) {
+                    const connUid = conn.uid || conn.id || '';
+                    if (!connUid) return;
+
+                    if (!newState.find(p => p.uid === connUid)) {
                         newState.push({
-                            uid: conn.uid,
+                            uid: connUid,
                             username: conn.username || 'User',
                             displayName: conn.displayName || 'User',
                             logs: [],
