@@ -63,4 +63,9 @@ export const deleteLog = async (id: number) => {
   return db.delete('logs', id);
 };
 
+export const clearLogs = async () => {
+  const db = await initDB();
+  return db.clear('logs');
+};
+
 export type { TrainLog };
