@@ -81,7 +81,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose }) => {
         if (type === 'excel') {
             await exportToExcel(logsToExport, fileName);
         } else {
-            await exportToPDF(logsToExport, fileName);
+            await exportToPDF(logsToExport, undefined, fileName);
         }
 
         setShowExportOptions(false);
