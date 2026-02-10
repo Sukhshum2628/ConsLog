@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { addLog, updateLog, deleteLog, getLogsByDate, getAllLogs, type TrainLog } from '../db';
 import { db } from '../lib/firebase';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where, writeBatch } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 
