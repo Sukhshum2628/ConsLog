@@ -9,7 +9,7 @@ import { Onboarding } from './components/Onboarding';
 import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel, exportToPDF } from './utils/export';
 import { format } from 'date-fns';
-import { Download, History, Settings, Wifi, WifiOff, RefreshCw, Menu } from 'lucide-react';
+import { Download, History, Settings, Wifi, WifiOff, RefreshCw, Menu, MapPin } from 'lucide-react';
 import { useModal, ModalProvider } from './context/ModalContext';
 import type { TrainLog } from './db';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -228,36 +228,56 @@ function InnerApp() {
         {
           user && partnerLogs.length > 0 && (
             <section className="flex-none space-y-4">
-              {partnerLogs.map(partner => (
-                <div key={partner.uid} className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
-                  <div className="bg-blue-50 p-3 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <h3 className="font-bold text-gray-800 text-sm">{partner.displayName}'s Logs</h3>
+              {partnerLogs.map(partner => {
+                // Determine the primary site for this batch of logs
+                const primarySiteId = partner.logs[0]?.siteId;
+                // @ts-ignore - 'sites' might not be in the type definition if IDE is checking strict, but we added it to hook.
+                // However, TS checks against the import. PartnerData is defined in useTrainLog.ts.
+                // We need to make sure App.tsx sees the updated type.
+                // Assuming it does (since it imports from useTrainLog).
+                // If not, we cast or use careful access.
+                const siteInfo = primarySiteId && partner.sites ? partner.sites[primarySiteId] : null;
+
+                return (
+                  <div key={partner.uid} className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+                    <div className="bg-blue-50 p-3 flex justify-between items-center">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                          <h3 className="font-bold text-gray-800 text-sm">{partner.displayName}</h3>
+                        </div>
+                        {siteInfo && (
+                          <div className="flex items-center gap-1 text-[10px] text-gray-500 ml-4">
+                            <MapPin size={10} />
+                            <span className="font-medium">{siteInfo.name}</span>
+                            {siteInfo.location && <span className="opacity-75">• {siteInfo.location}</span>}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => fetchPartnerLogs(partner.uid, partner.username, partner.displayName)}
+                        className="flex items-center gap-1 text-[10px] bg-white border border-blue-200 text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <RefreshCw size={12} />
+                        Sync
+                      </button>
                     </div>
-                    <button
-                      onClick={() => fetchPartnerLogs(partner.uid, partner.username, partner.displayName)}
-                      className="flex items-center gap-1 text-[10px] bg-white border border-blue-200 text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-100 transition-colors"
-                    >
-                      <RefreshCw size={12} />
-                      Sync Logs
-                    </button>
+                    <div className="max-h-48 overflow-y-auto">
+                      {partner.logs.length === 0 ? (
+                        <p className="text-xs text-gray-400 p-4 text-center">No logs for today.</p>
+                      ) : (
+                        <LogTable
+                          logs={partner.logs}
+                          readOnly={true}
+                          onDelete={() => { }}
+                          onEdit={() => { }}
+                          onCopy={copyLogToPersonal}
+                        />
+                      )}
+                    </div>
                   </div>
-                  <div className="max-h-48 overflow-y-auto">
-                    {partner.logs.length === 0 ? (
-                      <p className="text-xs text-gray-400 p-4 text-center">No logs for today.</p>
-                    ) : (
-                      <LogTable
-                        logs={partner.logs}
-                        readOnly={true}
-                        onDelete={() => { }}
-                        onEdit={() => { }}
-                        onCopy={copyLogToPersonal}
-                      />
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </section>
           )
         }

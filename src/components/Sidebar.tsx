@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSites, type Site } from '../hooks/useSites';
-import { Plus, X, Building2, MapPin, ChevronRight, Trash2, Home } from 'lucide-react';
-import { AddSiteModal } from './AddSiteModal';
+import { Plus, X, Building2, MapPin, ChevronRight, Trash2, Home, Pencil, MoreVertical } from 'lucide-react';
+import { SiteModal } from './SiteModal';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -12,7 +12,25 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite, activeSiteId }) => {
     const { sites, deleteSite } = useSites();
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [editingSite, setEditingSite] = useState<Site | undefined>(undefined);
+    const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+    const handleAddClick = () => {
+        setEditingSite(undefined);
+        setShowModal(true);
+    };
+
+    const handleEditClick = (site: Site) => {
+        setEditingSite(site);
+        setShowModal(true);
+        setActiveMenuId(null);
+    };
+
+    const handleDeleteClick = (siteId: string) => {
+        deleteSite(siteId);
+        setActiveMenuId(null);
+    };
 
     return (
         <>
@@ -39,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite,
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3" onClick={() => setActiveMenuId(null)}>
                     {sites.length === 0 ? (
                         <div className="text-center p-8 border-2 border-dashed border-gray-200 rounded-xl">
                             <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
@@ -48,6 +66,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite,
                     ) : (
                         sites.map(site => {
                             const isActive = site.id === activeSiteId;
+                            const isMenuOpen = activeMenuId === site.id;
+
                             return (
                                 <div
                                     key={site.id}
@@ -59,6 +79,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite,
                                         }
                                     `}
                                     onClick={() => {
+                                        // If menu is open, clicking row should just close it (via parent onClick) or select?
+                                        // Let's allow select.
                                         onSelectSite(site);
                                         onClose();
                                     }}
@@ -81,21 +103,56 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite,
                                         </div>
                                     </div>
 
-                                    {isActive && <ChevronRight size={16} className="text-blue-400" />}
+                                    {isActive && !isMenuOpen && <ChevronRight size={16} className="text-blue-400 absolute right-4" />}
 
-                                    {/* Delete Button (Only for non-active, non-default sites?) Or allow active delete? */}
-                                    {/* Let's allow delete but stopPropagation */}
-                                    {!site.isDefault && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteSite(site.id);
-                                            }}
-                                            className="absolute right-2 top-2 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                                            title="Delete Site"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                    {/* 3-Dots Menu Trigger */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveMenuId(isMenuOpen ? null : site.id);
+                                        }}
+                                        className={`
+                                            absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all
+                                            ${isMenuOpen ? 'bg-gray-100 text-gray-900 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-100 hover:text-gray-600'}
+                                        `}
+                                    >
+                                        <MoreVertical size={16} />
+                                    </button>
+
+                                    {/* Dropdown Menu */}
+                                    {isMenuOpen && (
+                                        <>
+                                            {/* Invisible backdrop to close menu */}
+                                            <div
+                                                className="fixed inset-0 z-10 cursor-default"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveMenuId(null);
+                                                }}
+                                            />
+                                            <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleEditClick(site);
+                                                    }}
+                                                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                >
+                                                    <Pencil size={14} /> Edit
+                                                </button>
+                                                {!site.isDefault && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteClick(site.id);
+                                                        }}
+                                                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                    >
+                                                        <Trash2 size={14} /> Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             );
@@ -105,7 +162,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite,
 
                 <div className="p-4 border-t border-gray-100">
                     <button
-                        onClick={() => setShowAddModal(true)}
+                        onClick={handleAddClick}
                         className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-gray-200"
                     >
                         <Plus size={18} />
@@ -114,7 +171,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite,
                 </div>
             </div>
 
-            {showAddModal && <AddSiteModal onClose={() => setShowAddModal(false)} />}
+            {showModal && (
+                <SiteModal
+                    onClose={() => setShowModal(false)}
+                    site={editingSite}
+                />
+            )}
         </>
     );
 };

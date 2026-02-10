@@ -98,6 +98,18 @@ export const useSites = () => {
         }
     }, [user, showAlert]);
 
+    const updateSite = useCallback(async (siteId: string, name: string, location: string) => {
+        if (!user) return;
+        try {
+            const siteRef = doc(db, 'users', user.uid, 'sites', siteId);
+            await setDoc(siteRef, { name, location }, { merge: true });
+            showAlert({ title: 'Success', message: 'Site updated successfully.', type: 'success' });
+        } catch (error) {
+            console.error("Update site error:", error);
+            showAlert({ title: 'Error', message: 'Failed to update site.', type: 'danger' });
+        }
+    }, [user, showAlert]);
+
     const deleteSite = useCallback(async (siteId: string) => {
         if (!user) return;
 
@@ -133,6 +145,7 @@ export const useSites = () => {
         loading,
         selectedSite,
         addSite,
+        updateSite, // <--- Exported
         deleteSite,
         selectSite
     };

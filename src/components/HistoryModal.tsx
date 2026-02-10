@@ -4,7 +4,7 @@ import { getAllLogs, type TrainLog } from '../db';
 import { exportToExcel, exportToPDF } from '../utils/export';
 import { format } from 'date-fns';
 import { db } from '../lib/firebase';
-import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { ExportOptionsModal } from './ExportOptionsModal';
 
@@ -37,26 +37,29 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose, siteId }) =
             let allLogs: TrainLog[] = [];
 
             if (user) {
-                // Fetch from Firestore
-                const constraints = [orderBy('arrival_timestamp', 'desc')];
-
-                // If siteId is provided, filter by it.
-                // Note: Firestore requires a composite index for 'siteId' + 'arrival_timestamp' if using both.
-                // The user might not have this index yet.
-                // For safety, we can filter client-side if the dataset is small, OR just use `where` and sort client-side.
-                // Let's try to add `where` clause. If it fails with index error, we'll need to sort client-side.
-                if (siteId) {
-                    // @ts-ignore
-                    constraints.unshift(where('siteId', '==', siteId));
-                }
-
+                // Fetch ALL logs from Firestore (ordered by date)
+                // We filter client-side to handle legacy logs (missing siteId) correctly
+                // without needing complex composite indexes or migration scripts immediately.
                 const q = query(
                     collection(db, 'users', user.uid, 'logs'),
-                    // @ts-ignore
-                    ...constraints
+                    orderBy('arrival_timestamp', 'desc')
                 );
                 const snapshot = await getDocs(q);
-                allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
+                const rawLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
+
+                // Client-side Filtering
+                if (siteId) {
+                    allLogs = rawLogs.filter(log => {
+                        // Match specific site
+                        if (log.siteId === siteId) return true;
+                        // Legacy handling: If viewing 'default-site', include logs with NO siteId
+                        if (siteId === 'default-site' && !log.siteId) return true;
+                        return false;
+                    });
+                } else {
+                    // Fallback: Show all if no site selected (or maybe none?)
+                    allLogs = rawLogs;
+                }
             } else {
                 // Fetch from Local DB
                 allLogs = await getAllLogs();

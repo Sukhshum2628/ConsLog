@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, LogOut, Settings, Shield, Users, Info, ArrowRight } from 'lucide-react';
+import { X, User, LogOut, Settings, Shield, Users, Info, ArrowRight, Trash2 } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
@@ -15,7 +15,7 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     const { user, logout } = useAuth();
-    const { activeLog } = useTrainLog();
+    const { activeLog, clearAllLogs } = useTrainLog();
     const { showAlert, showConfirm } = useModal();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
@@ -135,6 +135,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                                         <Shield size={20} className="text-gray-500 group-hover:text-green-600" />
                                     </div>
                                     <span className="font-semibold text-gray-700 group-hover:text-gray-900">Security & Privacy</span>
+                                </button>
+
+                                <div className="h-px bg-gray-100 my-2 mx-2"></div>
+
+                                <button
+                                    onClick={async () => {
+                                        const confirmed = await showConfirm({
+                                            title: 'Clear Database',
+                                            message: 'Are you sure? This will PERMANENTLY delete ALL your logs from the database. This action cannot be undone.',
+                                            type: 'danger',
+                                            confirmText: 'Yes, Delete Everything',
+                                            cancelText: 'Cancel'
+                                        });
+
+                                        if (confirmed) {
+                                            // TODO: We need clearAllLogs from useTrainLog. 
+                                            await clearAllLogs();
+                                            onClose();
+                                        }
+                                    }}
+                                    className="w-full p-4 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-2xl transition-all text-left group border border-transparent hover:border-red-100"
+                                >
+                                    <div className="p-2 bg-red-50 rounded-xl group-hover:bg-red-100 transition-colors">
+                                        <Trash2 size={20} className="text-red-500 group-hover:text-red-600" />
+                                    </div>
+                                    <span className="font-bold">Clear Database</span>
                                 </button>
 
                                 <div className="h-px bg-gray-100 my-2 mx-2"></div>

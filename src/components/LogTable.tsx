@@ -1,6 +1,6 @@
 import React from 'react';
 import type { TrainLog } from '../db';
-import { Trash2, AlertCircle, Pencil, PlusCircle } from 'lucide-react';
+import { Trash2, AlertCircle, Pencil, PlusCircle, MoreVertical, X, CheckSquare, Square } from 'lucide-react';
 import { format } from 'date-fns';
 import { useModal } from '../context/ModalContext';
 
@@ -16,19 +16,38 @@ interface LogTableProps {
 export const LogTable = React.memo<LogTableProps>(({ logs, onDelete, onEdit, readOnly, onCopy, onBulkDelete }) => {
     const { showConfirm } = useModal();
     const [selectedIds, setSelectedIds] = React.useState<Set<number | string>>(new Set());
+    const [isSelectionMode, setIsSelectionMode] = React.useState(false);
+    const [showMenu, setShowMenu] = React.useState(false);
 
     // Clear selection if logs change (e.g. date change)
     React.useEffect(() => {
         setSelectedIds(new Set());
+        setIsSelectionMode(false);
     }, [logs]);
 
-    const handleSelectAll = () => {
+    const handleSelectAll = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
         if (selectedIds.size === logs.length) {
             setSelectedIds(new Set());
         } else {
             const allIds = new Set(logs.map(l => l.id!).filter(Boolean));
             setSelectedIds(allIds);
         }
+        setIsSelectionMode(true);
+        setShowMenu(false);
+    };
+
+    const handleEnterSelectionMode = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setIsSelectionMode(true);
+        setShowMenu(false);
+    };
+
+    const handleExitSelectionMode = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setIsSelectionMode(false);
+        setSelectedIds(new Set());
+        setShowMenu(false);
     };
 
     const handleSelect = (id: number | string) => {
@@ -55,6 +74,7 @@ export const LogTable = React.memo<LogTableProps>(({ logs, onDelete, onEdit, rea
         if (confirmed) {
             onBulkDelete(Array.from(selectedIds));
             setSelectedIds(new Set());
+            setIsSelectionMode(false);
         }
     };
 
@@ -90,16 +110,24 @@ export const LogTable = React.memo<LogTableProps>(({ logs, onDelete, onEdit, rea
 
     return (
         <div className="flex-1 overflow-visible bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col relative">
-            {/* Bulk Action Bar (Overlay or Header replacement) */}
+            {/* Bulk Action Bar (Overlay) */}
             {selectedIds.size > 0 && !readOnly && (
-                <div className="absolute top-0 left-0 right-0 h-12 bg-blue-50 z-20 flex items-center justify-between px-4 rounded-t-2xl border-b border-blue-100 animate-in slide-in-from-top-2 duration-200">
-                    <span className="font-bold text-blue-800 text-sm">{selectedIds.size} selected</span>
+                <div className="absolute top-0 left-0 right-0 h-10 bg-blue-600 z-20 flex items-center justify-between px-4 rounded-t-2xl shadow-md animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleExitSelectionMode}
+                            className="text-white/80 hover:text-white hover:bg-white/10 p-1 rounded-full transition-colors"
+                        >
+                            <X size={16} />
+                        </button>
+                        <span className="font-bold text-white text-sm">{selectedIds.size} selected</span>
+                    </div>
                     <button
                         onClick={handleBulkDelete}
                         className="flex items-center gap-1 text-red-600 font-bold text-xs bg-white px-3 py-1.5 rounded-lg border border-red-200 shadow-sm hover:bg-red-50"
                     >
                         <Trash2 size={14} />
-                        Delete Selected
+                        Delete
                     </button>
                 </div>
             )}
@@ -115,13 +143,42 @@ export const LogTable = React.memo<LogTableProps>(({ logs, onDelete, onEdit, rea
                         <thead className="bg-gray-50 sticky top-0 z-10">
                             <tr>
                                 {!readOnly && onBulkDelete && (
-                                    <th className="p-3 w-10 text-center">
-                                        <input
-                                            type="checkbox"
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                                            checked={logs.length > 0 && selectedIds.size === logs.length}
-                                            onChange={handleSelectAll}
-                                        />
+                                    <th className="p-3 w-10 text-center relative">
+                                        <button
+                                            onClick={() => setShowMenu(!showMenu)}
+                                            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+                                        >
+                                            <MoreVertical size={16} />
+                                        </button>
+
+                                        {/* Dropdown Menu */}
+                                        {showMenu && (
+                                            <>
+                                                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                                                <div className="absolute top-full left-0 mt-1 w-36 bg-white rounded-xl shadow-xl border border-gray-100 z-40 overflow-hidden text-left animate-in fade-in zoom-in-95 duration-100 origin-top-left">
+                                                    <button
+                                                        onClick={handleEnterSelectionMode}
+                                                        className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+                                                    >
+                                                        <Square size={14} /> Select
+                                                    </button>
+                                                    <button
+                                                        onClick={handleSelectAll}
+                                                        className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+                                                    >
+                                                        <CheckSquare size={14} /> Select All
+                                                    </button>
+                                                    {isSelectionMode && (
+                                                        <button
+                                                            onClick={handleExitSelectionMode}
+                                                            className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-50"
+                                                        >
+                                                            <X size={14} /> Cancel
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
                                     </th>
                                 )}
                                 <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Start</th>
@@ -141,14 +198,16 @@ export const LogTable = React.memo<LogTableProps>(({ logs, onDelete, onEdit, rea
                                         className={`transition-colors group ${isSelected ? 'bg-blue-50/60' : 'hover:bg-gray-50'}`}
                                     >
                                         {!readOnly && onBulkDelete && (
-                                            <td className="p-3 text-center">
-                                                <input
-                                                    type="checkbox"
-                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                                                    checked={isSelected}
-                                                    onChange={() => log.id && handleSelect(log.id)}
-                                                    disabled={isRunning} // Prevent deleting running logs via bulk? Maybe safer.
-                                                />
+                                            <td className="p-3 text-center h-10">
+                                                {isSelectionMode && (
+                                                    <input
+                                                        type="checkbox"
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer animate-in fade-in duration-200"
+                                                        checked={isSelected}
+                                                        onChange={() => log.id && handleSelect(log.id)}
+                                                        disabled={isRunning}
+                                                    />
+                                                )}
                                             </td>
                                         )}
                                         <td className="p-3 font-medium text-gray-900">

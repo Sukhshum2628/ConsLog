@@ -13,6 +13,7 @@ export interface PartnerData {
     displayName: string;
     logs: TrainLog[];
     lastSyncedAt: Date | null;
+    sites: Record<string, { name: string; location: string }>;
 }
 
 interface ConnectionData {
@@ -137,11 +138,29 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
                 collection(db, 'users', partnerUid, 'logs'),
                 where('date', '==', dateStr)
             );
-            // Use getDocs for one-time fetch (Manual Sync / Interval)
-            const { getDocs } = await import('firebase/firestore'); // Dynamic import to avoid top-level if needed, or just use standard
+            // Dynamic imports or standard likely fine
+            const { getDocs, getDoc, doc } = await import('firebase/firestore');
             const snapshot = await getDocs(q);
             const pLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
             pLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
+
+            // Fetch Site Details for these logs
+            const uniqueSiteIds = Array.from(new Set(pLogs.map(l => l.siteId).filter(Boolean))) as string[];
+            const siteMap: Record<string, { name: string; location: string }> = {};
+
+            await Promise.all(uniqueSiteIds.map(async (sid) => {
+                try {
+                    const siteSnap = await getDoc(doc(db, 'users', partnerUid, 'sites', sid));
+                    if (siteSnap.exists()) {
+                        const data = siteSnap.data();
+                        siteMap[sid] = { name: data.name, location: data.location };
+                    } else if (sid === 'default-site') {
+                        siteMap[sid] = { name: 'Main Site', location: '' };
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch site info", e);
+                }
+            }));
 
             setPartnerLogs(prev => {
                 // Remove existing entry for this partner if any
@@ -151,7 +170,8 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
                     username: partnerName,
                     displayName: partnerDisplay,
                     logs: pLogs,
-                    lastSyncedAt: new Date()
+                    lastSyncedAt: new Date(),
+                    sites: siteMap
                 }];
             });
         } catch (e) {
@@ -187,7 +207,8 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
                             username: conn.username || 'User',
                             displayName: conn.displayName || 'User',
                             logs: [],
-                            lastSyncedAt: null
+                            lastSyncedAt: null,
+                            sites: {}
                         });
                         // Initial fetch
                         fetchPartnerLogs(connUid, conn.username, conn.displayName);
@@ -341,6 +362,35 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
         }
     }, [user, showAlert]);
 
+    const clearAllLogs = useCallback(async () => {
+        if (!user) return;
+
+        // This is a destructive action, caller should confirm first usually, but we implement logic here.
+        try {
+            const logsRef = collection(db, 'users', user.uid, 'logs');
+            const snapshot = await import('firebase/firestore').then(mod => mod.getDocs(logsRef));
+
+            if (snapshot.empty) {
+                showAlert({ title: 'Empty', message: 'No logs to clear.', type: 'info' });
+                return;
+            }
+
+            const batch = writeBatch(db);
+            let count = 0;
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+                count++;
+            });
+
+            await batch.commit();
+            showAlert({ title: 'Cleared', message: `Successfully deleted ${count} logs.`, type: 'success' });
+            setLogs([]); // Clear local state
+        } catch (error: any) {
+            console.error("Clear all failed:", error);
+            showAlert({ title: 'Error', message: 'Failed to clear logs: ' + error.message, type: 'danger' });
+        }
+    }, [user, showAlert]);
+
     return {
         logs,
         partnerLogs,
@@ -351,7 +401,8 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
         completeEntry,
         removeEntry,
         bulkDeleteEntries,
-        copyLogToPersonal, // <--- Exported
+        copyLogToPersonal,
+        clearAllLogs, // <--- Exported
         activeLog,
         totalHaltTime,
         setDate: setCurrentDate

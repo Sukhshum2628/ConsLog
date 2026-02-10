@@ -1,23 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, MapPin } from 'lucide-react';
-import { useSites } from '../hooks/useSites';
+import { useSites, type Site } from '../hooks/useSites';
 
-interface AddSiteModalProps {
+interface SiteModalProps {
     onClose: () => void;
+    site?: Site; // If provided, we are in Edit mode
 }
 
-export const AddSiteModal: React.FC<AddSiteModalProps> = ({ onClose }) => {
-    const { addSite } = useSites();
+export const SiteModal: React.FC<SiteModalProps> = ({ onClose, site }) => {
+    const { addSite, updateSite } = useSites();
     const [name, setName] = useState('');
     const [location, setLocation] = useState('');
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (site) {
+            setName(site.name);
+            setLocation(site.location);
+        }
+    }, [site]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name.trim()) return;
 
         setLoading(true);
-        await addSite(name, location);
+        if (site) {
+            await updateSite(site.id, name, location);
+        } else {
+            await addSite(name, location);
+        }
         setLoading(false);
         onClose();
     };
@@ -27,8 +39,8 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({ onClose }) => {
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all animate-in zoom-in-95 duration-200 border border-white/20">
                 <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
                     <div>
-                        <h3 className="font-bold text-xl text-gray-900">Add New Site</h3>
-                        <p className="text-sm text-gray-500">Create a new construction site</p>
+                        <h3 className="font-bold text-xl text-gray-900">{site ? 'Edit Site' : 'Add New Site'}</h3>
+                        <p className="text-sm text-gray-500">{site ? 'Update site details' : 'Create a new construction site'}</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
                         <X className="w-6 h-6" />
@@ -68,7 +80,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({ onClose }) => {
                             disabled={loading}
                             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:scale-100"
                         >
-                            {loading ? 'Creating...' : 'Create Site'}
+                            {loading ? 'Saving...' : (site ? 'Save Changes' : 'Create Site')}
                         </button>
                     </div>
                 </form>
