@@ -14,6 +14,7 @@ export interface PartnerData {
     logs: TrainLog[];
     lastSyncedAt: Date | null;
     sites: Record<string, { name: string; location: string }>;
+    syncedSiteId?: string;
 }
 
 interface ConnectionData {
@@ -128,23 +129,32 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
 
     // 2. PARTNER LOGS LOGIC
     // Helper to fetch logs for a specific partner
-    const fetchPartnerLogs = useCallback(async (partnerUid: string, partnerName: string, partnerDisplay: string) => {
+    const fetchPartnerLogs = useCallback(async (partnerUid: string, partnerName: string, partnerDisplay: string, syncedSiteId?: string) => {
         if (!user) return;
         const dateStr = format(currentDate, 'yyyy-MM-dd');
-        console.log(`Fetching logs for ${partnerName}...`);
+        console.log(`Fetching logs for ${partnerName} (Scope: ${syncedSiteId || 'All'})...`);
 
         try {
+            const constraints: any[] = [where('date', '==', dateStr)];
+
+            // Filter by Site if a scope is defined and strict
+            if (syncedSiteId && syncedSiteId !== 'all') {
+                constraints.push(where('siteId', '==', syncedSiteId));
+            }
+
             const q = query(
                 collection(db, 'users', partnerUid, 'logs'),
-                where('date', '==', dateStr)
+                ...constraints
             );
+
             // Dynamic imports or standard likely fine
             const { getDocs, getDoc, doc } = await import('firebase/firestore');
             const snapshot = await getDocs(q);
             const pLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
             pLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
 
-            // Fetch Site Details for these logs
+            // Fetch Site Details for these logs (or just the scoped one)
+            // If scoped, we only need that one. If all, we fetch distincts.
             const uniqueSiteIds = Array.from(new Set(pLogs.map(l => l.siteId).filter(Boolean))) as string[];
             const siteMap: Record<string, { name: string; location: string }> = {};
 
@@ -171,7 +181,8 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
                     displayName: partnerDisplay,
                     logs: pLogs,
                     lastSyncedAt: new Date(),
-                    sites: siteMap
+                    sites: siteMap,
+                    syncedSiteId: syncedSiteId // Save scope
                 }];
             });
         } catch (e) {
@@ -179,6 +190,8 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
         }
     }, [user, currentDate]);
 
+    // Listen to Connections & Auto-Sync
+    // Listen to Connections
     // Listen to Connections & Auto-Sync
     // Listen to Connections
     useEffect(() => {
@@ -195,27 +208,29 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
                 // 1. Remove partners who are no longer connected
                 const kept = prev.filter(p => connectionUids.has(p.uid));
 
-                // 2. Add new partners
-                const newPartners: PartnerData[] = [];
+                // 2. Add new partners OR Update existing ones if scope changed
+                // We need to trigger fetch if scope changed.
+                // Simplified: Just re-run fetch for everyone active?
+                // Or compare.
+
                 connections.forEach(conn => {
                     const connUid = conn.uid || conn.id || '';
                     if (!connUid) return;
 
-                    if (!kept.find(p => p.uid === connUid)) {
-                        newPartners.push({
-                            uid: connUid,
-                            username: conn.username || 'User',
-                            displayName: conn.displayName || 'User',
-                            logs: [],
-                            lastSyncedAt: null,
-                            sites: {}
-                        });
-                        // Initial fetch
-                        fetchPartnerLogs(connUid, conn.username, conn.displayName);
-                    }
+
+                    // Check if we need to fetch (New, or Scope Changed)
+                    // We can't easily check scope change here without storing it in PartnerData.
+                    // Let's blindly fetch for now, it's safer.
+                    // But we don't want to loop infinite.
+                    // This listener fires on Metadata update (Switch Site).
+                    // So YES, we want to re-fetch when this fires.
+
+                    fetchPartnerLogs(connUid, conn.username, conn.displayName, conn.syncedSiteId);
+
+                    // Note: We don't add to state here, fetchPartnerLogs does.
                 });
 
-                return [...kept, ...newPartners];
+                return kept; // The fetch will append/update them.
             });
         });
 
@@ -223,13 +238,29 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
     }, [user, lobbyId, currentDate, fetchPartnerLogs]);
 
     // Auto-Sync Interval (Separate Effect)
+    // We need to know the SCOPE for auto-sync.
+    // Since fetchPartnerLogs is stateless regarding scope (it asks for it),
+    // and PartnerData state doesn't have it (yet), we need to read it?
+    // Actually, let's add `syncedSiteId` to PartnerData state in fetchPartnerLogs update.
+    // I missed that in previous step. I'll fix it in next step or assume I did?
+    // I didn't. I only added filtering.
+    // FOR NOW: I will rely on the listener to handle updates.
+    // For auto-sync, I risk losing scope if I don't store it.
+    // Let's modify this Effect to not use setInterval on partnerLogs directly without knowing scope.
+    // Better: Fetch connections again? No.
+    // Solution: Store connections in a ref or state?
+    // Actually, `useTrainLog` is becoming complex.
+    // Let's just make `fetchPartnerLogs` store `syncedSiteId` in `PartnerData` (step 4).
+    // And here, we assume it's there.
+
     useEffect(() => {
         if (!user || lobbyId || partnerLogs.length === 0) return;
 
         const intervalId = setInterval(() => {
             console.log("Auto-syncing partners...");
             partnerLogs.forEach(partner => {
-                fetchPartnerLogs(partner.uid, partner.username, partner.displayName);
+                // @ts-ignore - Assuming we added it to type, or will.
+                fetchPartnerLogs(partner.uid, partner.username, partner.displayName, partner.syncedSiteId);
             });
         }, 5 * 60 * 1000);
 

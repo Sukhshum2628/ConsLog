@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import {
@@ -11,6 +11,7 @@ import {
     deleteDoc,
     setDoc,
     getDoc,
+    writeBatch,
     serverTimestamp,
     type Timestamp
 } from 'firebase/firestore';
@@ -85,19 +86,21 @@ export const useSyncActions = () => {
         }
     };
 
-    const acceptRequest = async (req: SyncRequest) => {
+    const acceptRequest = async (req: SyncRequest, siteId?: string, siteName?: string) => {
         if (!user) return;
         setLoading(true);
         try {
-            // 1. Add to MY connections
+            // 1. Add to MY connections (I am connecting to THEM)
             await setDoc(doc(db, 'users', user.uid, 'connections', req.fromUid), {
                 uid: req.fromUid,
                 username: req.fromUsername,
                 displayName: req.fromDisplayName || req.fromUsername,
-                connectedAt: new Date()
+                connectedAt: new Date(),
+                syncedSiteId: siteId || 'all',
+                syncedSiteName: siteName || 'All Sites'
             });
 
-            // 2. Add ME to THEIR connections
+            // 2. Add ME to THEIR connections (They connect to ME)
             const myProfileSnap = await getDoc(doc(db, 'users', user.uid));
             const myProfile = myProfileSnap.data();
 
@@ -105,7 +108,9 @@ export const useSyncActions = () => {
                 uid: user.uid,
                 username: myProfile?.username || 'Unknown',
                 displayName: myProfile?.displayName || 'Unknown',
-                connectedAt: new Date()
+                connectedAt: new Date(),
+                syncedSiteId: 'all', // Default for now
+                syncedSiteName: 'All Sites'
             });
 
             // 3. Delete Request
@@ -163,11 +168,39 @@ export const useSyncActions = () => {
         }
     };
 
+    const broadcastSiteChange = useCallback(async (newSiteId: string, newSiteName: string) => {
+        if (!user) return;
+        try {
+            // Get my connections
+            const myConnsRef = collection(db, 'users', user.uid, 'connections');
+            const snapshot = await getDocs(myConnsRef);
+
+            const batch = writeBatch(db);
+
+            snapshot.docs.forEach(docSnap => {
+                const partnerUid = docSnap.id;
+                // Update Partner's view of ME
+                // path: users/PARTNER/connections/ME
+                const ref = doc(db, 'users', partnerUid, 'connections', user.uid);
+                batch.update(ref, {
+                    syncedSiteId: newSiteId,
+                    syncedSiteName: newSiteName
+                });
+            });
+
+            await batch.commit();
+            // showAlert({ title: 'Sync Updated', message: 'Partners notified of site change.', type: 'info' });
+        } catch (error) {
+            console.error("Broadcast failed:", error);
+        }
+    }, [user]);
+
     return {
         sendRequest,
         acceptRequest,
         rejectRequest,
         disconnect,
+        broadcastSiteChange,
         loading
     };
 };

@@ -6,7 +6,8 @@ import {
     collection,
     query,
     where,
-    onSnapshot
+    onSnapshot,
+    getDocs // Imported
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -21,6 +22,12 @@ interface ConnectedUser {
     displayName: string;
 }
 
+interface Site {
+    id: string;
+    name: string;
+    location: string;
+}
+
 export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => {
     const { user } = useAuth();
     const { sendRequest, acceptRequest, rejectRequest, disconnect, loading } = useSyncActions();
@@ -28,6 +35,11 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
     const [targetUsername, setTargetUsername] = useState('');
     const [requests, setRequests] = useState<SyncRequest[]>([]);
     const [connections, setConnections] = useState<ConnectedUser[]>([]);
+
+    // Config State
+    const [configuringRequest, setConfiguringRequest] = useState<SyncRequest | null>(null);
+    const [senderSites, setSenderSites] = useState<Site[]>([]);
+    const [loadingSites, setLoadingSites] = useState(false);
 
     useEffect(() => {
         if (!isOpen || !user) return;
@@ -61,6 +73,31 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
         if (success) {
             setTargetUsername('');
         }
+    };
+
+    const handleConfigureRequest = async (req: SyncRequest) => {
+        setConfiguringRequest(req);
+        setLoadingSites(true);
+        try {
+            // Fetch Sender's Sites
+            const sitesRef = collection(db, 'users', req.fromUid, 'sites');
+            const snap = await getDocs(sitesRef);
+            const sites = snap.docs.map(d => ({ id: d.id, ...d.data() } as Site));
+            setSenderSites(sites);
+        } catch (error) {
+            console.error("Error fetching sites:", error);
+            setSenderSites([]);
+        } finally {
+            setLoadingSites(false);
+        }
+    };
+
+    const handleConfirmAccept = async (siteId: string, siteName: string) => {
+        if (!configuringRequest) return;
+
+        await acceptRequest(configuringRequest, siteId, siteName);
+        setConfiguringRequest(null);
+        setSenderSites([]);
     };
 
     if (!isOpen) return null;
@@ -122,20 +159,92 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
                                         </div>
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => acceptRequest(req)}
+                                                onClick={() => handleConfigureRequest(req)}
                                                 className="p-2 bg-green-500 text-white rounded-xl hover:bg-green-600 shadow-md shadow-green-500/20 transition-transform active:scale-95"
+                                                title="Accept & Configure"
                                             >
                                                 <Check size={18} />
                                             </button>
                                             <button
                                                 onClick={() => rejectRequest(req.id)}
                                                 className="p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 shadow-md shadow-red-500/20 transition-transform active:scale-95"
+                                                title="Reject"
                                             >
                                                 <XIcon size={18} />
                                             </button>
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Site Selection Overlay (Nested in Modal) */}
+                    {configuringRequest && (
+                        <div className="absolute inset-0 bg-white z-20 p-6 animate-in slide-in-from-right duration-300 flex flex-col">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">Select Site Scope</h3>
+                                    <p className="text-xs text-gray-500">Choose which logs to sync from {configuringRequest.fromUsername}</p>
+                                </div>
+                                <button
+                                    onClick={() => setConfiguringRequest(null)}
+                                    className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+                                >
+                                    <XIcon size={16} />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto space-y-2">
+                                {loadingSites ? (
+                                    <div className="flex justify-center py-8">
+                                        <RefreshCw className="animate-spin text-blue-500" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* All Sites Option */}
+                                        {/*
+                                        <button
+                                            onClick={() => handleConfirmAccept('all', 'All Sites')}
+                                            className="w-full text-left p-4 rounded-xl border border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                                        >
+                                            <div className="font-bold text-gray-800 group-hover:text-blue-700">All Sites</div>
+                                            <div className="text-xs text-gray-400">View logs from all locations</div>
+                                        </button>
+                                        */}
+
+                                        {senderSites.length === 0 ? (
+                                            <div className="text-center p-8 text-gray-400">
+                                                <p>No sites found for this user.</p>
+                                                <button
+                                                    onClick={() => handleConfirmAccept('all', 'All Sites')}
+                                                    className="mt-4 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg text-sm font-bold"
+                                                >
+                                                    Sync All Anyway
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            senderSites.map(site => (
+                                                <button
+                                                    key={site.id}
+                                                    onClick={() => handleConfirmAccept(site.id, site.name)}
+                                                    className="w-full text-left p-4 rounded-xl border border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all group relative"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <div className="font-bold text-gray-800 group-hover:text-blue-700">{site.name}</div>
+                                                            <div className="text-xs text-gray-400 flex items-center gap-1">
+                                                                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
+                                                                {site.location || 'No location'}
+                                                            </div>
+                                                        </div>
+                                                        <Check size={16} className="opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity" />
+                                                    </div>
+                                                </button>
+                                            ))
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}

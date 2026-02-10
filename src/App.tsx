@@ -17,7 +17,8 @@ import { SecurityCheck } from './components/SecurityCheck';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { useSyncNotifications } from './hooks/useSyncNotifications';
-import { useSites } from './hooks/useSites';
+import { useSyncActions } from './hooks/useSyncActions';
+import { useSites, type Site } from './hooks/useSites'; // Ensure Site type
 import { Sidebar } from './components/Sidebar';
 
 // Inner App component that uses Context
@@ -26,8 +27,9 @@ function InnerApp() {
     return localStorage.getItem('timeLog_hasOnboarded') === 'true';
   });
 
-  const { showAlert } = useModal();
+  const { showAlert, showConfirm } = useModal(); // Destructure showConfirm
   useSyncNotifications(); // <--- LISTENER
+  const { broadcastSiteChange } = useSyncActions(); // <--- ACTIONS
 
   // Multi-Site Hook
   const { selectedSite, selectSite } = useSites();
@@ -59,6 +61,27 @@ function InnerApp() {
     copyLogToPersonal,
     bulkDeleteEntries
   } = useTrainLog(null, selectedSite?.id || null);
+
+  // Site Selection with Sync Guard
+  const handleSelectSite = async (site: Site) => {
+    // If we are currently syncing (have partners), we must warn and notify
+    if (partnerLogs.length > 0) {
+      const confirmed = await showConfirm({
+        title: 'Switch Site & Update Sync?',
+        message: `You are currently sharing data. Switching to "${site.name}" will update what your partners see.\n\nContinue?`,
+        type: 'warning',
+        confirmText: 'Switch & Update',
+        cancelText: 'Cancel'
+      });
+
+      if (!confirmed) return;
+
+      // Notify Partners
+      await broadcastSiteChange(site.id, site.name);
+    }
+
+    selectSite(site);
+  };
 
   const { user } = useAuth();
 
@@ -143,7 +166,7 @@ function InnerApp() {
       <Sidebar
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
-        onSelectSite={selectSite}
+        onSelectSite={handleSelectSite}
         activeSiteId={selectedSite?.id}
       />
 
@@ -234,12 +257,14 @@ function InnerApp() {
                 // @ts-ignore - 'sites' might not be in the type definition if IDE is checking strict, but we added it to hook.
                 // However, TS checks against the import. PartnerData is defined in useTrainLog.ts.
                 // We need to make sure App.tsx sees the updated type.
-                // Assuming it does (since it imports from useTrainLog).
                 // If not, we cast or use careful access.
                 const siteInfo = primarySiteId && partner.sites ? partner.sites[primarySiteId] : null;
 
                 return (
-                  <div key={partner.uid} className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+                  <div
+                    key={partner.uid + (partner.syncedSiteId || '')} // Updated key
+                    className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden animate-in fade-in duration-500" // Added animation classes
+                  >
                     <div className="bg-blue-50 p-3 flex justify-between items-center">
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
