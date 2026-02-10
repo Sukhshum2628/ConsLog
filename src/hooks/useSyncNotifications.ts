@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useSyncActions, type SyncRequest } from './useSyncActions';
@@ -9,6 +9,9 @@ export const useSyncNotifications = () => {
     const { user } = useAuth();
     const { showConfirm } = useModal();
     const { acceptRequest } = useSyncActions();
+
+    // Track requests we've already shown a popup for to prevent duplicates/loops
+    const processedIds = useRef<Set<string>>(new Set());
 
     useEffect(() => {
         if (!user) return;
@@ -23,32 +26,29 @@ export const useSyncNotifications = () => {
                 if (change.type === 'added') {
                     const req = { id: change.doc.id, ...change.doc.data() } as SyncRequest;
 
-                    // Show Popup for NEW requests
-                    // Ensure we don't spam if multiple load at once? 
-                    // onSnapshot calls 'added' for initial load too. 
-                    // We might want to filter by timestamp if we only want "real-time" ones, 
-                    // but showing pending requests on load is also good feature.
+                    if (processedIds.current.has(req.id)) {
+                        return; // Already handled/showing
+                    }
+
+                    // Mark as processed immediately so we don't show it again
+                    processedIds.current.add(req.id);
 
                     const confirmed = await showConfirm({
                         title: 'New Sync Request',
                         message: `User "${req.fromUsername}" wants to sync logs with you.`,
                         type: 'info',
                         confirmText: 'Accept',
-                        cancelText: 'Ignore/Reject'
+                        cancelText: 'Ignore'
                     });
 
                     if (confirmed) {
-                        await acceptRequest(req);
-                    } else {
-                        // Optional: Reject on ignore? Or just leave it pending?
-                        // If we reject, it deletes it.
-                        // Let's ask via another modal? No, too complex.
-                        // Let's assume 'Ignore' leaves it pending (so they can accept in SyncManager later),
-                        // OR we make the secondary button "Reject".
-                        // standard 'showConfirm' has cancelText.
-
-                        // If we want explicit reject, we might need a custom modal or just let them manage in UI.
-                        // For now, let's just leave it pending if they cancel.
+                        try {
+                            await acceptRequest(req);
+                        } catch (e) {
+                            console.error("Accept failed", e);
+                            // If failed, maybe remove from processedIds so they can try again? 
+                            // Or let them use the manual menu. Safe to keep as processed.
+                        }
                     }
                 }
             });
