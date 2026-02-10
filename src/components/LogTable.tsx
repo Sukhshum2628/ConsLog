@@ -1,15 +1,17 @@
 import React from 'react';
 import type { TrainLog } from '../db';
-import { Trash2, AlertCircle, Pencil } from 'lucide-react';
+import { Trash2, AlertCircle, Pencil, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface LogTableProps {
     logs: TrainLog[];
     onDelete: (id: number | string) => void;
     onEdit: (log: TrainLog) => void;
+    readOnly?: boolean;
+    onCopy?: (log: TrainLog) => void;
 }
 
-export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onEdit }) => {
+export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onEdit, readOnly, onCopy }) => {
 
     const handleDeleteClick = (log: TrainLog) => {
         if (!log.id) return;
@@ -61,21 +63,34 @@ export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onEdit }) =>
                                     </td>
                                     <td className="p-3 text-center">
                                         <div className="flex items-center justify-end gap-1">
-                                            <button
-                                                onClick={() => handleEditClick(log)}
-                                                className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                                                title="Edit"
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                            </button>
-
-                                            {!isRunning && (
+                                            {!readOnly && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleEditClick(log)}
+                                                        className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                        title="Edit"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    {!isRunning && (
+                                                        <button
+                                                            onClick={() => handleDeleteClick(log)}
+                                                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                            {readOnly && onCopy && (
                                                 <button
-                                                    onClick={() => handleDeleteClick(log)}
-                                                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                                    title="Delete"
+                                                    onClick={() => onCopy(log)}
+                                                    className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-bold transition-colors"
+                                                    title="Add to My Logs"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <PlusCircle size={14} />
+                                                    Add
                                                 </button>
                                             )}
                                         </div>
