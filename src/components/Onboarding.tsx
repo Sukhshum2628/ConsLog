@@ -38,7 +38,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     </div>
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight">TimeLog</h1>
                     <p className="text-gray-500 text-lg">
-                        Professional train halt logging for construction teams.
+                        Professional time tracking for any activity.
                     </p>
                 </div>
 

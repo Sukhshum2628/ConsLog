@@ -160,7 +160,7 @@ export const exportToExcel = async (logs: ExportLog[], fileName: string = `TimeL
             'Halt Duration': grandTotalFormatted,
             'Date': '',
             'Status': ''
-        });
+        } as any);
 
         // 2. Create Workbook
         const ws = XLSX.utils.json_to_sheet(data);
