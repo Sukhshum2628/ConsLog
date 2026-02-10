@@ -182,10 +182,10 @@ export const useSyncActions = () => {
                 // Update Partner's view of ME
                 // path: users/PARTNER/connections/ME
                 const ref = doc(db, 'users', partnerUid, 'connections', user.uid);
-                batch.update(ref, {
+                batch.set(ref, {
                     syncedSiteId: newSiteId,
                     syncedSiteName: newSiteName
-                });
+                }, { merge: true });
             });
 
             await batch.commit();
