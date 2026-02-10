@@ -42,11 +42,15 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
                 const base = log.departure_timestamp ? new Date(log.departure_timestamp) : new Date(log.arrival_timestamp);
                 const newDate = set(base, { hours: h, minutes: m, seconds: 0, milliseconds: 0 });
                 updatedLog.departure_timestamp = newDate.getTime();
-            } else {
-                // If cleared, maybe we should remove it? For now, let's keep it simple and assume valid input
-                // Or if it was running, departure is undefined. 
-                // If user clears departure of a completed log, it becomes running? 
-                // Let's assume user only edits valid times for now. 
+            }
+
+            // Recalculate Duration
+            if (updatedLog.arrival_timestamp && updatedLog.departure_timestamp) {
+                if (updatedLog.departure_timestamp < updatedLog.arrival_timestamp) {
+                    alert('End time cannot be before Start time.');
+                    return;
+                }
+                updatedLog.halt_duration_seconds = Math.floor((updatedLog.departure_timestamp - updatedLog.arrival_timestamp) / 1000);
             }
 
             onSave(updatedLog);
