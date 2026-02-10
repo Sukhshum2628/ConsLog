@@ -5,6 +5,8 @@ import { AuthModal } from './AuthModal';
 import { EditProfileModal } from './EditProfileModal';
 import { SyncManager } from './SyncManager';
 
+import { useTrainLog } from '../hooks/useTrainLog';
+
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -12,6 +14,7 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     const { user, logout } = useAuth();
+    const { activeLog } = useTrainLog(); // Check for running timer
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showSyncManager, setShowSyncManager] = useState(false);
@@ -111,6 +114,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
                                 <button
                                     onClick={() => {
+                                        if (activeLog) {
+                                            alert("⚠️ Cannot Log Out!\n\nA timer is currently running. Please stop the timer to save your data before logging out.");
+                                            return;
+                                        }
                                         if (confirm("Are you sure you want to log out?")) {
                                             logout();
                                             onClose();

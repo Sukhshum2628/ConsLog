@@ -116,19 +116,29 @@ export const useTrainLog = (lobbyId: string | null = null) => {
     }, [lobbyId, currentDate, user]);
 
     const addEntry = async () => {
+        // 1. Prevent multiple running timers
+        const alreadyRunning = logs.find(l => l.status === 'RUNNING');
+        if (alreadyRunning) {
+            alert("A timer is already running! Please stop it first.");
+            return;
+        }
+
         try {
             const newLog: TrainLog = {
                 id: Date.now(),
-                date: format(new Date(), 'yyyy-MM-dd'),
+                date: format(currentDate, 'yyyy-MM-dd'), // Use currentDate state to match listener
                 arrival_timestamp: Date.now(),
                 status: 'RUNNING',
                 created_at: Date.now()
             };
 
+            // Optimistic update for immediate feedback (optional, but Firestore is usually fast enough)
+            // But if there's lag, this helps prevents double-clicks visually if we managed state manually
+            // For now, relying on the check above is good.
+
             if (lobbyId) {
                 await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(newLog.id)), newLog);
             } else if (user) {
-                // IMPORTANT: Ensure 'users' collection exists or rules allow write
                 const logRef = doc(db, 'users', user.uid, 'logs', String(newLog.id));
                 await setDoc(logRef, newLog);
             } else {
@@ -145,13 +155,17 @@ export const useTrainLog = (lobbyId: string | null = null) => {
     };
 
     const updateEntry = async (updatedLog: TrainLog) => {
-        if (lobbyId) {
-            await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(updatedLog.id)), updatedLog);
-        } else if (user) {
-            await setDoc(doc(db, 'users', user.uid, 'logs', String(updatedLog.id)), updatedLog);
-        } else {
-            await updateLog(updatedLog);
-            setLogs(prev => prev.map(l => l.id === updatedLog.id ? updatedLog : l));
+        try {
+            if (lobbyId) {
+                await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(updatedLog.id)), updatedLog);
+            } else if (user) {
+                await setDoc(doc(db, 'users', user.uid, 'logs', String(updatedLog.id)), updatedLog);
+            } else {
+                await updateLog(updatedLog);
+                setLogs(prev => prev.map(l => l.id === updatedLog.id ? updatedLog : l));
+            }
+        } catch (e: any) {
+            alert("Update failed: " + e.message);
         }
     };
 
