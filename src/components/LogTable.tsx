@@ -16,7 +16,7 @@ export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onEdit, read
     const handleDeleteClick = (log: TrainLog) => {
         if (!log.id) return;
         // Native confirmation dialog
-        if (window.confirm(`Are you sure you want to DELETE this entry?\n\nArrival: ${format(log.arrival_timestamp, 'HH:mm:ss')}`)) {
+        if (window.confirm(`Are you sure you want to DELETE this entry?\n\nStart: ${format(log.arrival_timestamp, 'HH:mm:ss')}`)) {
             onDelete(log.id);
         }
     };
@@ -38,8 +38,8 @@ export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onEdit, read
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
-                            <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Arrival</th>
-                            <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Departure</th>
+                            <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Start</th>
+                            <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">End</th>
                             <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Halt</th>
                             <th className="p-3 w-16 text-center">Actions</th>
                         </tr>
