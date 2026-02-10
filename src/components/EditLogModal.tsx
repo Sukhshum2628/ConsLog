@@ -15,9 +15,9 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
 
     useEffect(() => {
         if (log) {
-            setArrivalStr(format(log.arrival_timestamp, 'HH:mm'));
+            setArrivalStr(format(log.arrival_timestamp, 'HH:mm:ss'));
             if (log.departure_timestamp) {
-                setDepartureStr(format(log.departure_timestamp, 'HH:mm'));
+                setDepartureStr(format(log.departure_timestamp, 'HH:mm:ss'));
             } else {
                 setDepartureStr('');
             }
@@ -30,17 +30,25 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
 
             // Update Arrival
             if (arrivalStr) {
-                const [h, m] = arrivalStr.split(':').map(Number);
+                const parts = arrivalStr.split(':').map(Number);
+                const h = parts[0];
+                const m = parts[1];
+                const s = parts[2] || 0;
+
                 const base = new Date(log.arrival_timestamp);
-                const newDate = set(base, { hours: h, minutes: m, seconds: 0, milliseconds: 0 });
+                const newDate = set(base, { hours: h, minutes: m, seconds: s, milliseconds: 0 });
                 updatedLog.arrival_timestamp = newDate.getTime();
             }
 
             // Update Departure
             if (departureStr) {
-                const [h, m] = departureStr.split(':').map(Number);
+                const parts = departureStr.split(':').map(Number);
+                const h = parts[0];
+                const m = parts[1];
+                const s = parts[2] || 0;
+
                 const base = log.departure_timestamp ? new Date(log.departure_timestamp) : new Date(log.arrival_timestamp);
-                const newDate = set(base, { hours: h, minutes: m, seconds: 0, milliseconds: 0 });
+                const newDate = set(base, { hours: h, minutes: m, seconds: s, milliseconds: 0 });
                 updatedLog.departure_timestamp = newDate.getTime();
             }
 
@@ -66,7 +74,7 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
                 <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
                     <div>
                         <h3 className="font-bold text-xl text-gray-900">Edit Entry</h3>
-                        <p className="text-sm text-gray-500">Adjust timing details</p>
+                        <p className="text-sm text-gray-500">Adjust timing details (HH:MM:SS)</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
                         <X className="w-6 h-6" />
@@ -78,6 +86,7 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Arrival Time</label>
                         <input
                             type="time"
+                            step="1"
                             value={arrivalStr}
                             onChange={(e) => setArrivalStr(e.target.value)}
                             className="w-full text-3xl font-mono font-bold p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-gray-800"
@@ -88,6 +97,7 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Departure Time</label>
                         <input
                             type="time"
+                            step="1"
                             value={departureStr}
                             onChange={(e) => setDepartureStr(e.target.value)}
                             disabled={log.status === 'RUNNING'}
