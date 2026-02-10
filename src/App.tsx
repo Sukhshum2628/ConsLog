@@ -10,16 +10,32 @@ import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel, exportToPDF } from './utils/export';
 import { format } from 'date-fns';
 import { Download, History, Settings, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { useModal, ModalProvider } from './context/ModalContext';
 import type { TrainLog } from './db';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SecurityCheck } from './components/SecurityCheck';
-// Router removed
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Inner App component that uses Context
 function InnerApp() {
   const [hasOnboarded, setHasOnboarded] = useState<boolean>(() => {
     return localStorage.getItem('timeLog_hasOnboarded') === 'true';
   });
+
+  const { showAlert } = useModal();
+
+  // Network Status
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const {
     logs,
@@ -51,25 +67,19 @@ function InnerApp() {
 
   const handleExportClick = () => {
     if (logs.length === 0) {
-      alert("No logs to export today.");
+      showAlert({ title: 'No Logs', message: 'No logs to export today.', type: 'info' });
       return;
     }
     setShowExportOptions(true);
   };
 
   /* New State for Profile */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (user) {
-        // We could duplicate logic or use a helper. 
-        // To avoid complex imports cycle, let's just use direct firebase here if needed?
-        // Or better: The AuthContext or a useProfile hook.
-        // For now, let's try to export just the basic info we have in 'user'.
-        // NOTE: user.displayName is available.
-        // To get 'company', we need firestore.
-        // Let's do a quick fetch
         try {
           const { doc, getDoc } = await import('firebase/firestore');
           const { db } = await import('./lib/firebase');
@@ -129,7 +139,11 @@ function InnerApp() {
               <p className="text-xs text-gray-500 font-medium">
                 {format(new Date(), 'EEEE, d MMMM')}
               </p>
-              {user ? (
+              {!isOnline ? (
+                <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold animate-pulse">
+                  <WifiOff className="w-3 h-3" /> OFFLINE
+                </span>
+              ) : user ? (
                 <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
                   <Wifi className="w-3 h-3" /> SYNC ON
                 </span>
@@ -273,11 +287,15 @@ function InnerApp() {
 
 function App() {
   return (
-    <AuthProvider>
-      <SecurityCheck>
-        <InnerApp />
-      </SecurityCheck>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ModalProvider>
+          <SecurityCheck>
+            <InnerApp />
+          </SecurityCheck>
+        </ModalProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

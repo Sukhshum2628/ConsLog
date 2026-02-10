@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, User, LogOut, Settings, Shield, Users, Info, ArrowRight } from 'lucide-react';
+import { useModal } from '../context/ModalContext';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 import { EditProfileModal } from './EditProfileModal';
@@ -14,7 +15,8 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     const { user, logout } = useAuth();
-    const { activeLog } = useTrainLog(); // Check for running timer
+    const { activeLog } = useTrainLog();
+    const { showAlert, showConfirm } = useModal();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showSyncManager, setShowSyncManager] = useState(false);
@@ -138,14 +140,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                                 <div className="h-px bg-gray-100 my-2 mx-2"></div>
 
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         if (activeLog) {
-                                            alert("⚠️ Cannot Log Out!\n\nA timer is currently running. Please stop the timer to save your data before logging out.");
+                                            await showAlert({
+                                                title: 'Cannot Log Out',
+                                                message: 'A timer is currently running. Please stop the timer to save your data before logging out.',
+                                                type: 'warning'
+                                            });
                                             return;
                                         }
-                                        if (confirm("Are you sure you want to log out?")) {
-                                            logout();
-                                            onClose();
+
+                                        const confirmed = await showConfirm({
+                                            title: 'Log Out',
+                                            message: 'Are you sure you want to log out?',
+                                            type: 'danger',
+                                            confirmText: 'Log Out',
+                                            cancelText: 'Cancel'
+                                        });
+
+                                        if (confirmed) {
+                                            try {
+                                                await logout();
+                                                onClose();
+                                            } catch (error) {
+                                                console.error("Logout failed", error);
+                                            }
                                         }
                                     }}
                                     className="w-full p-4 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-2xl transition-all text-left group border border-transparent hover:border-red-100"

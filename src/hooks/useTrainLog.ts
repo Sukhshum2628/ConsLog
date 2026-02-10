@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { addLog, updateLog, deleteLog, getLogsByDate, getAllLogs, clearLogs, type TrainLog } from '../db';
 import { db } from '../lib/firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where, writeBatch } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
+import { useModal } from '../context/ModalContext';
 
 // Types
 export interface PartnerData {
@@ -23,6 +24,7 @@ interface ConnectionData {
 
 export const useTrainLog = (lobbyId: string | null = null) => {
     const { user } = useAuth();
+    const { showAlert } = useModal();
     const [logs, setLogs] = useState<TrainLog[]>([]);
     const [partnerLogs, setPartnerLogs] = useState<PartnerData[]>([]); // New State
     const [loading, setLoading] = useState(true);
@@ -51,7 +53,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                         await batch.commit();
                         await clearLogs(); // Clear local DB after sync
                         console.log("Migration Complete. Local DB Verified Cleared.");
-                        // Optional: alert('Guest logs have been synced to your account!');
+                        // Optional: showAlert({ title: 'Sync Complete', message: 'Guest logs have been synced.', type: 'success' });
                     } catch (e) {
                         console.error("Migration Failed", e);
                     }
@@ -94,7 +96,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                 setLoading(false);
             }, (err) => {
                 console.error("Cloud Sync Error:", err);
-                // alert("Sync Error: " + err.message);
+                // showAlert({ title: 'Sync Error', message: err.message, type: 'danger' });
                 setLoading(false);
             });
             return () => unsubscribe();
@@ -119,7 +121,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
 
     // 2. PARTNER LOGS LOGIC
     // Helper to fetch logs for a specific partner
-    const fetchPartnerLogs = async (partnerUid: string, partnerName: string, partnerDisplay: string) => {
+    const fetchPartnerLogs = useCallback(async (partnerUid: string, partnerName: string, partnerDisplay: string) => {
         if (!user) return;
         const dateStr = format(currentDate, 'yyyy-MM-dd');
         console.log(`Fetching logs for ${partnerName}...`);
@@ -149,7 +151,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         } catch (e) {
             console.error(`Failed to fetch logs for ${partnerName}`, e);
         }
-    };
+    }, [user, currentDate]);
 
     // Listen to Connections & Auto-Sync
     useEffect(() => {
@@ -199,14 +201,14 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         });
 
         return () => unsubConn();
-    }, [user, lobbyId, currentDate]); // Re-run if date changes to fetch new date's logs
+    }, [user, lobbyId, currentDate, fetchPartnerLogs]); // Re-run if date changes to fetch new date's logs
 
 
-    const addEntry = async () => {
+    const addEntry = useCallback(async () => {
         // ... (Same as before)
         const alreadyRunning = logs.find(l => l.status === 'RUNNING');
         if (alreadyRunning) {
-            alert("A timer is already running! Please stop it first.");
+            showAlert({ title: 'Timer Running', message: 'A timer is already running!\nPlease stop it first.', type: 'warning' });
             return;
         }
 
@@ -232,11 +234,11 @@ export const useTrainLog = (lobbyId: string | null = null) => {
             }
         } catch (error) {
             console.error("FAILED ADD ENTRY:", error);
-            alert("Error starting timer: " + (error as any).message);
+            showAlert({ title: 'Error', message: 'Error starting timer: ' + (error as any).message, type: 'danger' });
         }
-    };
+    }, [logs, lobbyId, user, currentDate, showAlert]);
 
-    const updateEntry = async (updatedLog: TrainLog) => {
+    const updateEntry = useCallback(async (updatedLog: TrainLog) => {
         // ... (Same as before)
         try {
             if (lobbyId) {
@@ -248,11 +250,11 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                 setLogs(prev => prev.map(l => l.id === updatedLog.id ? updatedLog : l));
             }
         } catch (e: any) {
-            alert("Update failed: " + e.message);
+            showAlert({ title: 'Update Failed', message: e.message, type: 'danger' });
         }
-    };
+    }, [lobbyId, user, showAlert]);
 
-    const completeEntry = async (log: TrainLog) => {
+    const completeEntry = useCallback(async (log: TrainLog) => {
         const departure = Date.now();
         const duration = Math.floor((departure - log.arrival_timestamp) / 1000);
         const completedLog: TrainLog = {
@@ -262,9 +264,9 @@ export const useTrainLog = (lobbyId: string | null = null) => {
             status: 'COMPLETED'
         };
         await updateEntry(completedLog);
-    };
+    }, [updateEntry]);
 
-    const removeEntry = async (id: number | string) => {
+    const removeEntry = useCallback(async (id: number | string) => {
         if (lobbyId) {
             await deleteDoc(doc(db, 'lobbies', lobbyId, 'logs', String(id)));
         } else if (user) {
@@ -273,9 +275,9 @@ export const useTrainLog = (lobbyId: string | null = null) => {
             await deleteLog(Number(id));
             setLogs(prev => prev.filter(l => l.id !== id));
         }
-    };
+    }, [lobbyId, user]);
 
-    const copyLogToPersonal = async (log: TrainLog) => {
+    const copyLogToPersonal = useCallback(async (log: TrainLog) => {
         if (!user) return;
         const newLog: TrainLog = {
             ...log,
@@ -289,12 +291,12 @@ export const useTrainLog = (lobbyId: string | null = null) => {
 
         try {
             await setDoc(doc(db, 'users', user.uid, 'logs', String(newLog.id)), newLog);
-            alert("Log copied to your personal logs!");
+            showAlert({ title: 'Success', message: 'Log copied to your personal logs!', type: 'success' });
         } catch (e) {
             console.error("Copy failed", e);
-            alert("Failed to copy log.");
+            showAlert({ title: 'Error', message: 'Failed to copy log.', type: 'danger' });
         }
-    };
+    }, [user, showAlert]);
 
     return {
         logs,

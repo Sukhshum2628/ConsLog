@@ -2,6 +2,7 @@ import React from 'react';
 import type { TrainLog } from '../db';
 import { Trash2, AlertCircle, Pencil, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { useModal } from '../context/ModalContext';
 
 interface LogTableProps {
     logs: TrainLog[];
@@ -11,18 +12,35 @@ interface LogTableProps {
     onCopy?: (log: TrainLog) => void;
 }
 
-export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onEdit, readOnly, onCopy }) => {
+export const LogTable = React.memo<LogTableProps>(({ logs, onDelete, onEdit, readOnly, onCopy }) => {
+    const { showConfirm } = useModal();
 
-    const handleDeleteClick = (log: TrainLog) => {
+    const handleDeleteClick = async (log: TrainLog) => {
         if (!log.id) return;
-        // Native confirmation dialog
-        if (window.confirm(`Are you sure you want to DELETE this entry?\n\nStart: ${format(log.arrival_timestamp, 'HH:mm:ss')}`)) {
+
+        const confirmed = await showConfirm({
+            title: 'Delete Log',
+            message: `Are you sure you want to DELETE this entry?\n\nStart: ${format(log.arrival_timestamp, 'HH:mm:ss')}`,
+            type: 'danger',
+            confirmText: 'Delete',
+            cancelText: 'Cancel'
+        });
+
+        if (confirmed) {
             onDelete(log.id);
         }
     };
 
-    const handleEditClick = (log: TrainLog) => {
-        if (window.confirm(`Do you want to EDIT this entry?`)) {
+    const handleEditClick = async (log: TrainLog) => {
+        const confirmed = await showConfirm({
+            title: 'Edit Entry',
+            message: 'Do you want to edit this entry?',
+            type: 'info',
+            confirmText: 'Edit',
+            cancelText: 'Cancel'
+        });
+
+        if (confirmed) {
             onEdit(log);
         }
     };
@@ -103,4 +121,4 @@ export const LogTable: React.FC<LogTableProps> = ({ logs, onDelete, onEdit, read
             )}
         </div>
     );
-};
+});
