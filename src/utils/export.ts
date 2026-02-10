@@ -116,7 +116,7 @@ export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fi
             const savedFile = await Filesystem.writeFile({
                 path: `${fileName}.pdf`,
                 data: base64Data,
-                directory: Directory.Documents,
+                directory: Directory.Cache, // Use Cache to avoid permission issues
             });
 
             await Share.share({
@@ -175,7 +175,7 @@ export const exportToExcel = async (logs: ExportLog[], fileName: string = `TimeL
             const savedFile = await Filesystem.writeFile({
                 path: `${fileName}.xlsx`,
                 data: wbout,
-                directory: Directory.Documents,
+                directory: Directory.Cache, // Use Cache to avoid permissions
             });
 
             await Share.share({
