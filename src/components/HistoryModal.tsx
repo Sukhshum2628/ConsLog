@@ -3,6 +3,9 @@ import { X, Download, Check, Calendar } from 'lucide-react';
 import { getAllLogs, type TrainLog } from '../db';
 import { exportToExcel, exportToPDF } from '../utils/export';
 import { format } from 'date-fns';
+import { db } from '../lib/firebase';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 import { ExportOptionsModal } from './ExportOptionsModal';
 
 interface HistoryModalProps {
@@ -21,18 +24,34 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose }) => {
     const [loading, setLoading] = useState(true);
     const [showExportOptions, setShowExportOptions] = useState(false);
 
+    const { user } = useAuth();
+
     useEffect(() => {
         loadData();
-    }, []);
+    }, [user]);
 
     const loadData = async () => {
+        setLoading(true);
         try {
-            const allLogs = await getAllLogs();
-            // Sort by date descending
-            allLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
+            let allLogs: TrainLog[] = [];
+
+            if (user) {
+                // Fetch from Firestore
+                const q = query(
+                    collection(db, 'users', user.uid, 'logs'),
+                    orderBy('arrival_timestamp', 'desc')
+                );
+                const snapshot = await getDocs(q);
+                allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
+            } else {
+                // Fetch from Local DB
+                allLogs = await getAllLogs();
+                allLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
+            }
+
             setLogs(allLogs);
         } catch (e) {
-            console.error(e);
+            console.error("Failed to load history:", e);
         } finally {
             setLoading(false);
         }
