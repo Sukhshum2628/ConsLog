@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Check, X as XIcon, RefreshCw, Trash2, Shield, Users } from 'lucide-react';
+import { X, UserPlus, Check, X as XIcon, RefreshCw, Trash2, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
     collection,

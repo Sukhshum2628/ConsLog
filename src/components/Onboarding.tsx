@@ -7,7 +7,7 @@ interface OnboardingProps {
 }
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
-    const { login } = useAuth();
+    const { signInWithGoogle } = useAuth();
 
     const handleGuest = () => {
         // Just complete, stay as guest
@@ -16,7 +16,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
     const handleLogin = async () => {
         try {
-            await login();
+            await signInWithGoogle();
             onComplete();
         } catch (error) {
             console.error("Onboarding Login Error:", error);

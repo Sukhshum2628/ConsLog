@@ -13,7 +13,7 @@ import { Download, History, Settings, Wifi, WifiOff } from 'lucide-react';
 import type { TrainLog } from './db';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SecurityCheck } from './components/SecurityCheck';
-import { BrowserRouter as Router } from 'react-router-dom'; // Assuming we might use router later, or just wrap
+// Router removed
 
 // Inner App component that uses Context
 function InnerApp() {

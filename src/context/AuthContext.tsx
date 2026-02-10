@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
-    User,
+    type User,
     GoogleAuthProvider,
     signInWithCredential,
     signInWithPopup,
@@ -9,11 +9,7 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     sendEmailVerification,
-    updatePassword,
-    fetchSignInMethodsForEmail,
-    EmailAuthProvider,
-    linkWithCredential,
-    reauthenticateWithCredential
+    updatePassword
 } from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { auth } from '../lib/firebase';
