@@ -61,52 +61,56 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-                <div className="bg-gray-50 p-4 border-b flex justify-between items-center">
-                    <h3 className="font-bold text-lg text-gray-800">Edit Log Entry</h3>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full">
-                        <X className="w-5 h-5 text-gray-500" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all animate-in zoom-in-95 duration-200 border border-white/20">
+                <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
+                    <div>
+                        <h3 className="font-bold text-xl text-gray-900">Edit Entry</h3>
+                        <p className="text-sm text-gray-500">Adjust timing details</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 <div className="p-6 space-y-6">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-500 uppercase mb-2">Arrival Time</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Arrival Time</label>
                         <input
                             type="time"
                             value={arrivalStr}
                             onChange={(e) => setArrivalStr(e.target.value)}
-                            className="w-full text-2xl font-mono p-3 bg-gray-100 rounded-xl border-2 border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
+                            className="w-full text-3xl font-mono font-bold p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-gray-800"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-gray-500 uppercase mb-2">Departure Time</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Departure Time</label>
                         <input
                             type="time"
                             value={departureStr}
                             onChange={(e) => setDepartureStr(e.target.value)}
                             disabled={log.status === 'RUNNING'}
                             className={`
-                                w-full text-2xl font-mono p-3 rounded-xl border-2 border-transparent outline-none transition-all
+                                w-full text-3xl font-mono font-bold p-4 rounded-2xl border-2 border-transparent outline-none transition-all
                                 ${log.status === 'RUNNING'
-                                    ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                                    : 'bg-gray-100 focus:border-blue-500 focus:bg-white'}
+                                    ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                    : 'bg-gray-50 text-gray-800 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10'}
                             `}
                         />
                         {log.status === 'RUNNING' && (
-                            <p className="text-xs text-orange-500 mt-2 font-medium">
-                                Cannot edit departure while train is running.
-                            </p>
+                            <div className="flex items-center gap-2 mt-2 text-orange-600 bg-orange-50 p-2 rounded-lg text-xs font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                Cannot edit departure while currently running
+                            </div>
                         )}
                     </div>
                 </div>
 
-                <div className="p-4 border-t bg-gray-50">
+                <div className="p-6 border-t bg-gray-50">
                     <button
                         onClick={handleSave}
-                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95"
+                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                     >
                         <Save className="w-5 h-5" />
                         Save Changes

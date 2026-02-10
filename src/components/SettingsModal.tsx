@@ -25,31 +25,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
     if (view === 'privacy') {
         return (
-            <div className="fixed inset-0 bg-black/50 z-40 flex items-end sm:items-center justify-center p-4">
-                <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-scale-up">
-                    <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-                        <button onClick={() => setView('main')} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-                            <ArrowRight className="rotate-180" size={20} />
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-white/20">
+                    <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
+                        <button onClick={() => setView('main')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors group">
+                            <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={20} />
                             <span className="font-bold">Back</span>
                         </button>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full">
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
                             <X size={20} />
                         </button>
                     </div>
-                    <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                    <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto">
                         <div className="flex justify-center">
-                            <Shield size={48} className="text-blue-500" />
+                            <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center ring-8 ring-blue-50/50">
+                                <Shield size={40} className="text-blue-500" />
+                            </div>
                         </div>
-                        <h2 className="text-xl font-bold text-center text-gray-800">Security & Privacy</h2>
-                        <p className="text-gray-600 text-sm leading-relaxed">
-                            Your data is securely stored on <b>Google Cloud Firestore</b>.
-                            We use industry-standard encryption for transmission.
-                        </p>
-                        <ul className="text-sm text-gray-600 space-y-2 list-disc pl-5">
-                            <li>We do not sell your personal data.</li>
-                            <li>Sync data is only shared with approved partners.</li>
-                            <li>You can request account deletion at any time.</li>
-                        </ul>
+                        <div className="text-center">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Security & Privacy</h2>
+                            <p className="text-gray-500 text-sm">How we protect your data</p>
+                        </div>
+
+                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                                Your data is securely stored on <b>Google Cloud Firestore</b>.
+                                We use industry-standard encryption for transmission.
+                            </p>
+                            <ul className="text-sm text-gray-600 space-y-3">
+                                <li className="flex gap-2.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                                    <span>We never sell your personal data.</span>
+                                </li>
+                                <li className="flex gap-2.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                                    <span>Sync data is only visible to authorized partners.</span>
+                                </li>
+                                <li className="flex gap-2.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                                    <span>You can request account deletion.</span>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -58,59 +75,67 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
     return (
         <>
-            <div className="fixed inset-0 bg-black/50 z-40 flex items-end sm:items-center justify-center p-4">
-                <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-scale-up">
-                    <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-                        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                            <Settings size={20} className="text-gray-600" />
-                            Settings
-                        </h2>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full">
-                            <X size={20} />
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-white/20">
+                    <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                <Settings size={22} className="text-gray-700" />
+                                Settings
+                            </h2>
+                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                            <X size={22} />
                         </button>
                     </div>
 
-                    <div className="p-4 space-y-3">
+                    <div className="p-5 space-y-3">
                         {user ? (
                             <>
-                                <div className="p-4 bg-blue-50 rounded-xl flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">
+                                <div className="p-5 bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-2xl flex items-center gap-4 shadow-sm mb-2">
+                                    <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl shadow-md ring-4 ring-blue-50">
                                         {user.displayName?.[0] || user.email?.[0] || 'U'}
                                     </div>
                                     <div className="overflow-hidden">
-                                        <h3 className="font-bold text-gray-900 truncate">{user.displayName || 'User'}</h3>
-                                        <div className="flex items-center gap-1">
-                                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                                        <h3 className="font-bold text-gray-900 truncate text-lg">{user.displayName || 'User'}</h3>
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <span className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                                            <p className="text-xs text-gray-500 truncate font-medium">{user.email}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <button
                                     onClick={() => setShowProfileModal(true)}
-                                    className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 rounded-xl transition-all text-left"
+                                    className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 rounded-2xl transition-all text-left group border border-transparent hover:border-gray-100"
                                 >
-                                    <User size={20} className="text-gray-500" />
-                                    <span className="font-medium text-gray-700">Edit Profile & Username</span>
+                                    <div className="p-2 bg-gray-100 rounded-xl group-hover:bg-blue-100 transition-colors">
+                                        <User size={20} className="text-gray-500 group-hover:text-blue-600" />
+                                    </div>
+                                    <span className="font-semibold text-gray-700 group-hover:text-gray-900">Edit Profile & Username</span>
                                 </button>
 
                                 <button
                                     onClick={() => setShowSyncManager(true)}
-                                    className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 rounded-xl transition-all text-left"
+                                    className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 rounded-2xl transition-all text-left group border border-transparent hover:border-gray-100"
                                 >
-                                    <Users size={20} className="text-gray-500" />
-                                    <span className="font-medium text-gray-700">Manage Team Sync</span>
+                                    <div className="p-2 bg-gray-100 rounded-xl group-hover:bg-purple-100 transition-colors">
+                                        <Users size={20} className="text-gray-500 group-hover:text-purple-600" />
+                                    </div>
+                                    <span className="font-semibold text-gray-700 group-hover:text-gray-900">Manage Team Sync</span>
                                 </button>
 
                                 <button
                                     onClick={() => setView('privacy')}
-                                    className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 rounded-xl transition-all text-left"
+                                    className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 rounded-2xl transition-all text-left group border border-transparent hover:border-gray-100"
                                 >
-                                    <Shield size={20} className="text-gray-500" />
-                                    <span className="font-medium text-gray-700">Security & Privacy</span>
+                                    <div className="p-2 bg-gray-100 rounded-xl group-hover:bg-green-100 transition-colors">
+                                        <Shield size={20} className="text-gray-500 group-hover:text-green-600" />
+                                    </div>
+                                    <span className="font-semibold text-gray-700 group-hover:text-gray-900">Security & Privacy</span>
                                 </button>
 
-                                <div className="h-px bg-gray-100 my-2"></div>
+                                <div className="h-px bg-gray-100 my-2 mx-2"></div>
 
                                 <button
                                     onClick={() => {
@@ -123,18 +148,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                                             onClose();
                                         }
                                     }}
-                                    className="w-full p-3 flex items-center gap-3 hover:bg-red-50 text-red-600 rounded-xl transition-all text-left"
+                                    className="w-full p-4 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-2xl transition-all text-left group border border-transparent hover:border-red-100"
                                 >
-                                    <LogOut size={20} />
+                                    <div className="p-2 bg-red-50 rounded-xl group-hover:bg-red-100 transition-colors">
+                                        <LogOut size={20} className="text-red-500 group-hover:text-red-600" />
+                                    </div>
                                     <span className="font-bold">Log Out</span>
                                 </button>
                             </>
                         ) : (
-                            <div className="text-center py-6">
-                                <p className="text-gray-500 mb-4">Log in to sync your data and access professional features.</p>
+                            <div className="text-center py-8">
+                                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <User className="text-blue-500" size={32} />
+                                </div>
+                                <h3 className="font-bold text-lg text-gray-900 mb-1">Sign In Required</h3>
+                                <p className="text-gray-500 mb-6 text-sm px-4">Log in to sync your data across devices and access professional features.</p>
                                 <button
                                     onClick={() => setShowAuthModal(true)}
-                                    className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all"
+                                    className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transform transition-all hover:scale-[1.02] active:scale-[0.98]"
                                 >
                                     Sign In / Sign Up
                                 </button>
@@ -143,7 +174,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     </div>
 
                     <div className="p-4 bg-gray-50 text-center border-t border-gray-100">
-                        <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
+                        <p className="text-xs text-gray-400 flex items-center justify-center gap-1 font-medium">
                             <Info size={12} /> ConsLogger v{version}
                         </p>
                     </div>
