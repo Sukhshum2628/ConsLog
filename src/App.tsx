@@ -9,7 +9,7 @@ import { Onboarding } from './components/Onboarding';
 import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel, exportToPDF } from './utils/export';
 import { format } from 'date-fns';
-import { Download, History, Settings, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Download, History, Settings, Wifi, WifiOff, RefreshCw, Menu } from 'lucide-react';
 import { useModal, ModalProvider } from './context/ModalContext';
 import type { TrainLog } from './db';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -17,6 +17,8 @@ import { SecurityCheck } from './components/SecurityCheck';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { useSyncNotifications } from './hooks/useSyncNotifications';
+import { useSites } from './hooks/useSites';
+import { Sidebar } from './components/Sidebar';
 
 // Inner App component that uses Context
 function InnerApp() {
@@ -26,6 +28,10 @@ function InnerApp() {
 
   const { showAlert } = useModal();
   useSyncNotifications(); // <--- LISTENER
+
+  // Multi-Site Hook
+  const { selectedSite, selectSite } = useSites();
+  const [showSidebar, setShowSidebar] = useState(false);
 
   // Network Status
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -52,7 +58,7 @@ function InnerApp() {
     totalHaltTime,
     copyLogToPersonal,
     bulkDeleteEntries
-  } = useTrainLog();
+  } = useTrainLog(null, selectedSite?.id || null);
 
   const { user } = useAuth();
 
@@ -134,12 +140,30 @@ function InnerApp() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
+      <Sidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        onSelectSite={selectSite}
+        activeSiteId={selectedSite?.id}
+      />
+
       {/* Header */}
       <header className="bg-white shadow-sm p-4 pt-12 sticky top-0 z-20 transition-all">
         <div className="max-w-md mx-auto flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-bold text-gray-800">TimeLog</h1>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSidebar(true)}
+                className="p-1 -ml-1 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Menu size={24} />
+              </button>
+              <h1 className="text-xl font-bold text-gray-800 truncate max-w-[150px]">
+                {selectedSite?.name || 'TimeLog'}
+              </h1>
+            </div>
+
+            <div className="flex items-center gap-2 mt-1">
               <p className="text-xs text-gray-500 font-medium">
                 {format(new Date(), 'EEEE, d MMMM')}
               </p>
@@ -265,7 +289,7 @@ function InnerApp() {
       </footer >
 
       {/* Modals */}
-      {showHistory && <HistoryModal onClose={() => setShowHistory(false)} />}
+      {showHistory && <HistoryModal onClose={() => setShowHistory(false)} siteId={selectedSite?.id} />}
 
       {
         editingLog && (

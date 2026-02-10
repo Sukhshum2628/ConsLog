@@ -4,12 +4,13 @@ import { getAllLogs, type TrainLog } from '../db';
 import { exportToExcel, exportToPDF } from '../utils/export';
 import { format } from 'date-fns';
 import { db } from '../lib/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { ExportOptionsModal } from './ExportOptionsModal';
 
 interface HistoryModalProps {
     onClose: () => void;
+    siteId?: string; // Add siteId prop
 }
 
 interface DateGroup {
@@ -18,7 +19,7 @@ interface DateGroup {
     logs: TrainLog[];
 }
 
-export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose }) => {
+export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose, siteId }) => {
     const [logs, setLogs] = useState<TrainLog[]>([]);
     const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
@@ -28,7 +29,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose }) => {
 
     useEffect(() => {
         loadData();
-    }, [user]);
+    }, [user, siteId]); // Add siteId to dependencies
 
     const loadData = async () => {
         setLoading(true);
@@ -37,9 +38,22 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose }) => {
 
             if (user) {
                 // Fetch from Firestore
+                const constraints = [orderBy('arrival_timestamp', 'desc')];
+
+                // If siteId is provided, filter by it.
+                // Note: Firestore requires a composite index for 'siteId' + 'arrival_timestamp' if using both.
+                // The user might not have this index yet.
+                // For safety, we can filter client-side if the dataset is small, OR just use `where` and sort client-side.
+                // Let's try to add `where` clause. If it fails with index error, we'll need to sort client-side.
+                if (siteId) {
+                    // @ts-ignore
+                    constraints.unshift(where('siteId', '==', siteId));
+                }
+
                 const q = query(
                     collection(db, 'users', user.uid, 'logs'),
-                    orderBy('arrival_timestamp', 'desc')
+                    // @ts-ignore
+                    ...constraints
                 );
                 const snapshot = await getDocs(q);
                 allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));

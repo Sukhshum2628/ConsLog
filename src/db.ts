@@ -8,6 +8,7 @@ interface TrainLog {
   halt_duration_seconds?: number;
   status: 'RUNNING' | 'COMPLETED';
   created_at: number;
+  siteId?: string; // New field for multi-site support
 }
 
 interface ConstLoggerDB extends DBSchema {

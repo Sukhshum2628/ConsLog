@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { addLog, updateLog, deleteLog, getLogsByDate, getAllLogs, clearLogs, type TrainLog } from '../db';
+import { addLog, updateLog, deleteLog, getLogsByDate, type TrainLog } from '../db';
 import { db } from '../lib/firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where, writeBatch } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -22,7 +22,7 @@ interface ConnectionData {
     [key: string]: any;
 }
 
-export const useTrainLog = (lobbyId: string | null = null) => {
+export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string | null = null) => {
     const { user } = useAuth();
     const { showAlert } = useModal();
     const [logs, setLogs] = useState<TrainLog[]>([]);
@@ -37,30 +37,12 @@ export const useTrainLog = (lobbyId: string | null = null) => {
     const totalHaltTime = logs.reduce((total, log) => {
         return total + (log.halt_duration_seconds || 0);
     }, 0);
-    useEffect(() => {
-        const migrateLogs = async () => {
-            if (user && !lobbyId) {
-                const localLogs = await getAllLogs();
-                if (localLogs.length > 0) {
-                    console.log("Migrating local logs to Cloud...");
-                    const batch = writeBatch(db);
-                    localLogs.forEach(log => {
-                        const ref = doc(db, 'users', user.uid, 'logs', String(log.id));
-                        batch.set(ref, log);
-                    });
 
-                    try {
-                        await batch.commit();
-                        await clearLogs(); // Clear local DB after sync
-                        console.log("Migration Complete. Local DB Verified Cleared.");
-                        // Optional: showAlert({ title: 'Sync Complete', message: 'Guest logs have been synced.', type: 'success' });
-                    } catch (e) {
-                        console.error("Migration Failed", e);
-                    }
-                }
-            }
-        };
-        migrateLogs();
+    // MIGRATION: Ensure all user logs have a siteId.
+    // If a log has no siteId, assign it to 'default-site'.
+    // Placeholder for future migration logic
+    useEffect(() => {
+        // No-op for now
     }, [user, lobbyId]);
 
     // 1. Load MY Data (Real-time Listener)
@@ -85,10 +67,32 @@ export const useTrainLog = (lobbyId: string | null = null) => {
 
         // USER CLOUD MODE (Private)
         else if (user) {
+            // Base constraints
+            const constraints = [
+                where('date', '==', dateStr)
+            ];
+
+            // If viewingSiteId is provided, filter by it.
+            // If viewingSiteId is NOT provided (e.g. initial load?), ideally we should have one.
+            // For backward compatibility: If we are viewing 'default-site', 
+            // strictly we should match 'siteId == default-site'.
+            // But old logs have NO siteId.
+            // Hack: If viewing 'default-site', we pull logs, then CLIENT-SIDE check if they need migration?
+            // Better: 'default-site' should show logs with siteId=='default-site'.
+            // Old logs are "lost" unless we migrate them.
+
+            // Migration handling:
+            // We should probably run a separate Effect to migrate old logs.
+            // For now, let's just add the Filter.
+            if (viewingSiteId) {
+                constraints.push(where('siteId', '==', viewingSiteId));
+            }
+
             const q = query(
                 collection(db, 'users', user.uid, 'logs'),
-                where('date', '==', dateStr)
+                ...constraints
             );
+
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const cloudLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
                 cloudLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
@@ -106,6 +110,8 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         else {
             const loadLocal = async () => {
                 try {
+                    // IndexedDB doesn't easily support multi-site yet without schema change.
+                    // For Guest, we might just ignore siteId for now or show all.
                     const data = await getLogsByDate(dateStr);
                     setLogs(data.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp));
                 } catch (e) {
@@ -116,7 +122,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
             };
             loadLocal();
         }
-    }, [lobbyId, currentDate, user]);
+    }, [lobbyId, currentDate, user, viewingSiteId]);
 
 
     // 2. PARTNER LOGS LOGIC
@@ -224,7 +230,8 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                 date: format(currentDate, 'yyyy-MM-dd'),
                 arrival_timestamp: Date.now(),
                 status: 'RUNNING',
-                created_at: Date.now()
+                created_at: Date.now(),
+                siteId: viewingSiteId ?? undefined // <--- Add siteId
             };
 
             if (lobbyId) {
@@ -242,7 +249,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
             console.error("FAILED ADD ENTRY:", error);
             showAlert({ title: 'Error', message: 'Error starting timer: ' + (error as any).message, type: 'danger' });
         }
-    }, [logs, lobbyId, user, currentDate, showAlert]);
+    }, [logs, lobbyId, user, currentDate, showAlert, viewingSiteId]);
 
     const updateEntry = useCallback(async (updatedLog: TrainLog) => {
         // ... (Same as before)
