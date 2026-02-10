@@ -59,8 +59,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         if (lobbyId) {
             const q = query(
                 collection(db, 'lobbies', lobbyId, 'logs'),
-                where('date', '==', dateStr),
-                orderBy('arrival_timestamp', 'desc')
+                where('date', '==', dateStr)
             );
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -68,10 +67,13 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                     id: doc.id,
                     ...doc.data()
                 } as TrainLog));
+                // Client-side sort
+                remoteLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
                 setLogs(remoteLogs);
                 setLoading(false);
             }, (err) => {
                 console.error("Lobby Sync Error:", err);
+                // alert("Sync Error: " + err.message); // Optional: Enable if needed
                 setLoading(false);
             });
             return () => unsubscribe();
@@ -81,8 +83,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         else if (user) {
             const q = query(
                 collection(db, 'users', user.uid, 'logs'),
-                where('date', '==', dateStr),
-                orderBy('arrival_timestamp', 'desc')
+                where('date', '==', dateStr)
             );
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -90,10 +91,13 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                     id: doc.id,
                     ...doc.data()
                 } as TrainLog));
+                // Client-side sort
+                cloudLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
                 setLogs(cloudLogs);
                 setLoading(false);
             }, (err) => {
                 console.error("Cloud Sync Error:", err);
+                alert("Sync Error: " + err.message); // Alert user to real-time errors
                 setLoading(false);
             });
             return () => unsubscribe();
