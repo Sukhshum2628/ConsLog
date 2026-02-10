@@ -160,12 +160,13 @@ export const useTrainLog = (lobbyId: string | null = null) => {
 
         // Listen to my connections
         const unsubConn = onSnapshot(collection(db, 'users', user.uid, 'connections'), (snap) => {
-            const connections = snap.docs.map(d => ({ uid: d.id, ...d.data() } as ConnectionData));
+            const connections = snap.docs.map(d => ({ ...d.data(), uid: d.id } as ConnectionData));
 
             // Initialize partner entries if not exist
             setPartnerLogs(prev => {
                 const newState = [...prev];
                 connections.forEach(conn => {
+                    // Fix: Ensure string
                     const connUid = conn.uid || conn.id || '';
                     if (!connUid) return;
 
@@ -178,7 +179,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                             lastSyncedAt: null
                         });
                         // Initial fetch
-                        fetchPartnerLogs(conn.uid, conn.username, conn.displayName);
+                        fetchPartnerLogs(connUid, conn.username, conn.displayName);
                     }
                 });
                 return newState;
@@ -187,7 +188,10 @@ export const useTrainLog = (lobbyId: string | null = null) => {
             // Set up Auto-Sync Interval (5 mins)
             const intervalId = setInterval(() => {
                 connections.forEach(conn => {
-                    fetchPartnerLogs(conn.uid, conn.username, conn.displayName);
+                    const connUid = conn.uid || conn.id || '';
+                    if (connUid) {
+                        fetchPartnerLogs(connUid, conn.username, conn.displayName);
+                    }
                 });
             }, 5 * 60 * 1000); // 5 minutes
 
