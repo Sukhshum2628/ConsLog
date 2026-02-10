@@ -50,7 +50,8 @@ function InnerApp() {
     updateEntry,
     activeLog,
     totalHaltTime,
-    copyLogToPersonal
+    copyLogToPersonal,
+    bulkDeleteEntries
   } = useTrainLog();
 
   const { user } = useAuth();
@@ -195,44 +196,47 @@ function InnerApp() {
             logs={logs}
             onDelete={removeEntry}
             onEdit={(log) => setEditingLog(log)}
+            onBulkDelete={bulkDeleteEntries}
           />
         </section>
 
         {/* Partner Logs Section */}
-        {user && partnerLogs.length > 0 && (
-          <section className="flex-none space-y-4">
-            {partnerLogs.map(partner => (
-              <div key={partner.uid} className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
-                <div className="bg-blue-50 p-3 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    <h3 className="font-bold text-gray-800 text-sm">{partner.displayName}'s Logs</h3>
+        {
+          user && partnerLogs.length > 0 && (
+            <section className="flex-none space-y-4">
+              {partnerLogs.map(partner => (
+                <div key={partner.uid} className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+                  <div className="bg-blue-50 p-3 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <h3 className="font-bold text-gray-800 text-sm">{partner.displayName}'s Logs</h3>
+                    </div>
+                    <button
+                      onClick={() => fetchPartnerLogs(partner.uid, partner.username, partner.displayName)}
+                      className="flex items-center gap-1 text-[10px] bg-white border border-blue-200 text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <RefreshCw size={12} />
+                      Sync Logs
+                    </button>
                   </div>
-                  <button
-                    onClick={() => fetchPartnerLogs(partner.uid, partner.username, partner.displayName)}
-                    className="flex items-center gap-1 text-[10px] bg-white border border-blue-200 text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    <RefreshCw size={12} />
-                    Sync Logs
-                  </button>
+                  <div className="max-h-48 overflow-y-auto">
+                    {partner.logs.length === 0 ? (
+                      <p className="text-xs text-gray-400 p-4 text-center">No logs for today.</p>
+                    ) : (
+                      <LogTable
+                        logs={partner.logs}
+                        readOnly={true}
+                        onDelete={() => { }}
+                        onEdit={() => { }}
+                        onCopy={copyLogToPersonal}
+                      />
+                    )}
+                  </div>
                 </div>
-                <div className="max-h-48 overflow-y-auto">
-                  {partner.logs.length === 0 ? (
-                    <p className="text-xs text-gray-400 p-4 text-center">No logs for today.</p>
-                  ) : (
-                    <LogTable
-                      logs={partner.logs}
-                      readOnly={true}
-                      onDelete={() => { }}
-                      onEdit={() => { }}
-                      onCopy={copyLogToPersonal}
-                    />
-                  )}
-                </div>
-              </div>
-            ))}
-          </section>
-        )}
+              ))}
+            </section>
+          )
+        }
 
         <section className="flex-none mb-4">
           <SmartButton
@@ -241,10 +245,10 @@ function InnerApp() {
             onPress={handleSmartButtonPress}
           />
         </section>
-      </main>
+      </main >
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 p-4 pb-12 sticky bottom-0 safe-area-bottom z-20">
+      < footer className="bg-white border-t border-gray-200 p-4 pb-12 sticky bottom-0 safe-area-bottom z-20" >
         <div className="max-w-md mx-auto">
           <div className="flex justify-between items-center bg-gray-900 text-white p-4 rounded-xl shadow-lg">
             <div className="flex flex-col">
@@ -258,33 +262,39 @@ function InnerApp() {
             <div className={`w-3 h-3 rounded-full ${activeLog ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`} />
           </div>
         </div>
-      </footer>
+      </footer >
 
       {/* Modals */}
       {showHistory && <HistoryModal onClose={() => setShowHistory(false)} />}
 
-      {editingLog && (
-        <EditLogModal
-          log={editingLog}
-          onClose={() => setEditingLog(null)}
-          onSave={updateEntry}
-        />
-      )}
+      {
+        editingLog && (
+          <EditLogModal
+            log={editingLog}
+            onClose={() => setEditingLog(null)}
+            onSave={updateEntry}
+          />
+        )
+      }
 
-      {showExportOptions && (
-        <ExportOptionsModal
-          onClose={() => setShowExportOptions(false)}
-          onExport={processExport}
-        />
-      )}
+      {
+        showExportOptions && (
+          <ExportOptionsModal
+            onClose={() => setShowExportOptions(false)}
+            onExport={processExport}
+          />
+        )
+      }
 
-      {showSettings && (
-        <SettingsModal
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-    </div>
+      {
+        showSettings && (
+          <SettingsModal
+            isOpen={showSettings}
+            onClose={() => setShowSettings(false)}
+          />
+        )
+      }
+    </div >
   );
 }
 

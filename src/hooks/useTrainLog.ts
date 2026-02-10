@@ -283,6 +283,36 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         }
     }, [lobbyId, user]);
 
+    const bulkDeleteEntries = useCallback(async (ids: (number | string)[]) => {
+        if (ids.length === 0) return;
+
+        try {
+            if (lobbyId) {
+                const batch = writeBatch(db);
+                ids.forEach(id => {
+                    const ref = doc(db, 'lobbies', lobbyId, 'logs', String(id));
+                    batch.delete(ref);
+                });
+                await batch.commit();
+            } else if (user) {
+                const batch = writeBatch(db);
+                ids.forEach(id => {
+                    const ref = doc(db, 'users', user.uid, 'logs', String(id));
+                    batch.delete(ref);
+                });
+                await batch.commit();
+            } else {
+                // Local
+                await Promise.all(ids.map(id => deleteLog(Number(id))));
+                setLogs(prev => prev.filter(l => !ids.includes(l.id!)));
+            }
+            showAlert({ title: 'Deleted', message: `${ids.length} logs deleted.`, type: 'success' });
+        } catch (e: any) {
+            console.error("Bulk delete failed", e);
+            showAlert({ title: 'Error', message: 'Failed to delete logs.', type: 'danger' });
+        }
+    }, [lobbyId, user, showAlert]);
+
     const copyLogToPersonal = useCallback(async (log: TrainLog) => {
         if (!user) return;
         const newLog: TrainLog = {
@@ -313,6 +343,7 @@ export const useTrainLog = (lobbyId: string | null = null) => {
         updateEntry,
         completeEntry,
         removeEntry,
+        bulkDeleteEntries,
         copyLogToPersonal, // <--- Exported
         activeLog,
         totalHaltTime,
