@@ -154,26 +154,29 @@ export const useTrainLog = (lobbyId: string | null = null) => {
     }, [user, currentDate]);
 
     // Listen to Connections & Auto-Sync
+    // Listen to Connections
     useEffect(() => {
         if (!user || lobbyId) {
             setPartnerLogs([]);
             return;
         }
 
-        // Listen to my connections
         const unsubConn = onSnapshot(collection(db, 'users', user.uid, 'connections'), (snap) => {
             const connections = snap.docs.map(d => ({ ...d.data(), uid: d.id } as ConnectionData));
+            const connectionUids = new Set(connections.map(c => c.uid));
 
-            // Initialize partner entries if not exist
             setPartnerLogs(prev => {
-                const newState = [...prev];
+                // 1. Remove partners who are no longer connected
+                const kept = prev.filter(p => connectionUids.has(p.uid));
+
+                // 2. Add new partners
+                const newPartners: PartnerData[] = [];
                 connections.forEach(conn => {
-                    // Fix: Ensure string
                     const connUid = conn.uid || conn.id || '';
                     if (!connUid) return;
 
-                    if (!newState.find(p => p.uid === connUid)) {
-                        newState.push({
+                    if (!kept.find(p => p.uid === connUid)) {
+                        newPartners.push({
                             uid: connUid,
                             username: conn.username || 'User',
                             displayName: conn.displayName || 'User',
@@ -184,24 +187,27 @@ export const useTrainLog = (lobbyId: string | null = null) => {
                         fetchPartnerLogs(connUid, conn.username, conn.displayName);
                     }
                 });
-                return newState;
+
+                return [...kept, ...newPartners];
             });
-
-            // Set up Auto-Sync Interval (5 mins)
-            const intervalId = setInterval(() => {
-                connections.forEach(conn => {
-                    const connUid = conn.uid || conn.id || '';
-                    if (connUid) {
-                        fetchPartnerLogs(connUid, conn.username, conn.displayName);
-                    }
-                });
-            }, 5 * 60 * 1000); // 5 minutes
-
-            return () => clearInterval(intervalId);
         });
 
         return () => unsubConn();
-    }, [user, lobbyId, currentDate, fetchPartnerLogs]); // Re-run if date changes to fetch new date's logs
+    }, [user, lobbyId, currentDate, fetchPartnerLogs]);
+
+    // Auto-Sync Interval (Separate Effect)
+    useEffect(() => {
+        if (!user || lobbyId || partnerLogs.length === 0) return;
+
+        const intervalId = setInterval(() => {
+            console.log("Auto-syncing partners...");
+            partnerLogs.forEach(partner => {
+                fetchPartnerLogs(partner.uid, partner.username, partner.displayName);
+            });
+        }, 5 * 60 * 1000);
+
+        return () => clearInterval(intervalId);
+    }, [user, lobbyId, partnerLogs, fetchPartnerLogs]);
 
 
     const addEntry = useCallback(async () => {
