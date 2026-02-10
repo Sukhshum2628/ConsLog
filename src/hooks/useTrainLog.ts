@@ -116,24 +116,31 @@ export const useTrainLog = (lobbyId: string | null = null) => {
     }, [lobbyId, currentDate, user]);
 
     const addEntry = async () => {
-        const newLog: TrainLog = {
-            id: Date.now(),
-            date: format(new Date(), 'yyyy-MM-dd'),
-            arrival_timestamp: Date.now(),
-            status: 'RUNNING',
-            created_at: Date.now()
-        };
+        try {
+            const newLog: TrainLog = {
+                id: Date.now(),
+                date: format(new Date(), 'yyyy-MM-dd'),
+                arrival_timestamp: Date.now(),
+                status: 'RUNNING',
+                created_at: Date.now()
+            };
 
-        if (lobbyId) {
-            await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(newLog.id)), newLog);
-        } else if (user) {
-            await setDoc(doc(db, 'users', user.uid, 'logs', String(newLog.id)), newLog);
-        } else {
-            await addLog(newLog);
-            // Refresh local
-            const dateStr = format(currentDate, 'yyyy-MM-dd');
-            const data = await getLogsByDate(dateStr);
-            setLogs(data.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp));
+            if (lobbyId) {
+                await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(newLog.id)), newLog);
+            } else if (user) {
+                // IMPORTANT: Ensure 'users' collection exists or rules allow write
+                const logRef = doc(db, 'users', user.uid, 'logs', String(newLog.id));
+                await setDoc(logRef, newLog);
+            } else {
+                await addLog(newLog);
+                // Refresh local
+                const dateStr = format(currentDate, 'yyyy-MM-dd');
+                const data = await getLogsByDate(dateStr);
+                setLogs(data.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp));
+            }
+        } catch (error) {
+            console.error("FAILED ADD ENTRY:", error);
+            alert("Error starting timer: " + (error as any).message);
         }
     };
 
