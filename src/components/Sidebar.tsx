@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite,
             {/* Backdrop */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 animate-in fade-in duration-300"
+                    className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 animate-fadeIn"
                     onClick={onClose}
                 />
             )}

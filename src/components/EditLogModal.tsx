@@ -77,8 +77,8 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all animate-in zoom-in-95 duration-200 border border-white/20">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all animate-scaleIn border border-white/20">
                 <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
                     <div>
                         <h3 className="font-bold text-xl text-gray-900">Edit Entry</h3>

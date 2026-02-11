@@ -222,7 +222,7 @@ function InnerApp() {
   // Dashboard View
   if (view === 'dashboard') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 p-4">
+      <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 p-4 animate-fadeIn">
         <DashboardPage
           logs={logs}
           onBack={() => setView('logs')}
@@ -232,7 +232,7 @@ function InnerApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 animate-fadeIn">
       <Sidebar
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}

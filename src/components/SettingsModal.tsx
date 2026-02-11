@@ -28,8 +28,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
     if (view === 'privacy') {
         return (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4 animate-fadeIn">
+                <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-scaleIn border border-white/20">
                     <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
                         <button onClick={() => setView('main')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors group">
                             <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={20} />
@@ -78,8 +78,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
     return (
         <>
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4 animate-fadeIn">
+                <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-scaleIn border border-white/20">
                     <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
                         <div>
                             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">

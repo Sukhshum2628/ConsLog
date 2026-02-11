@@ -136,7 +136,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose, siteId }) =
     };
 
     return (
-        <div className="fixed inset-0 bg-white z-50 flex flex-col animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed inset-0 bg-white z-50 flex flex-col animate-slideUp">
             {/* Header */}
             <div className="p-4 pt-12 border-b flex justify-between items-center bg-gray-50 sticky top-0 z-10 transition-colors">
                 {isSelectionMode ? (

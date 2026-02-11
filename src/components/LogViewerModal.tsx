@@ -25,7 +25,7 @@ export function LogViewerModal({ date, logs, onClose, siteName, userInfo }: LogV
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-white animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-0 z-[60] flex flex-col bg-white animate-slideInRight">
             {/* Header */}
             <div className="p-4 pt-12 border-b bg-gray-50 flex justify-between items-center shadow-sm">
                 <div>
