@@ -86,7 +86,7 @@ export function ReportModal({ isOpen, onClose, onGenerate, availableUsers }: Rep
                         </div>
                         <h2 className="text-lg font-bold">Generate Report</h2>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500 transform duration-200 hover:scale-110 active:scale-95">
                         <X size={20} />
                     </button>
                 </div>

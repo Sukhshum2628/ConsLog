@@ -162,7 +162,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ onClose, siteId }) =
                         {isSelectionMode ? (selectedDates.size === groupedLogs.length ? 'Deselect All' : 'Select All') : 'Select'}
                     </button>
                     {!isSelectionMode && (
-                        <button onClick={onClose} className="p-2 bg-gray-200 rounded-full hover:bg-gray-300">
+                        <button onClick={onClose} className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transform transition-transform duration-200 hover:scale-110 active:scale-95">
                             <X className="w-5 h-5" />
                         </button>
                     )}

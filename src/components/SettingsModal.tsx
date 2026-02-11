@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { X, User, LogOut, Settings, Shield, Users, Info, ArrowRight, Trash2 } from 'lucide-react';
-import { useModal } from '../context/ModalContext';
+import { useSites } from '../hooks/useSites';
+import { ShiftManager } from './ShiftManager';
+import { Briefcase, ArrowRight, X, Shield, Settings, User, Users, Trash2, LogOut, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { AuthModal } from './AuthModal';
-
-import { SyncManager } from './SyncManager';
-
 import { useTrainLog } from '../hooks/useTrainLog';
+import { useModal } from '../context/ModalContext';
+import { AuthModal } from './AuthModal';
+import { SyncManager } from './SyncManager';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -18,9 +18,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     const { user, logout } = useAuth();
     const { activeLog, clearAllLogs } = useTrainLog();
     const { showAlert, showConfirm } = useModal();
+    const { selectedSite } = useSites();
     const [showAuthModal, setShowAuthModal] = useState(false);
     // const [showProfileModal, setShowProfileModal] = useState(false); // Removed internal state
     const [showSyncManager, setShowSyncManager] = useState(false);
+    const [showShiftManager, setShowShiftManager] = useState(false);
     const [view, setView] = useState<'main' | 'privacy'>('main');
     const version = "2.0.0 (Build 15)";
 
@@ -35,7 +37,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                             <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={20} />
                             <span className="font-bold">Back</span>
                         </button>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600 transform duration-200 hover:scale-110 active:scale-95">
                             <X size={20} />
                         </button>
                     </div>
@@ -87,7 +89,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                 Settings
                             </h2>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600 transform duration-200 hover:scale-110 active:scale-95">
                             <X size={22} />
                         </button>
                     </div>
@@ -126,6 +128,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                         <Users size={20} className="text-gray-500 group-hover:text-purple-600" />
                                     </div>
                                     <span className="font-semibold text-gray-700 group-hover:text-gray-900">Manage Team Sync</span>
+                                </button>
+
+                                <button
+                                    onClick={() => setShowShiftManager(true)}
+                                    className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 rounded-2xl transition-all text-left group border border-transparent hover:border-gray-100"
+                                >
+                                    <div className="p-2 bg-gray-100 rounded-xl group-hover:bg-indigo-100 transition-colors">
+                                        <Briefcase size={20} className="text-gray-500 group-hover:text-indigo-600" />
+                                    </div>
+                                    <span className="font-semibold text-gray-700 group-hover:text-gray-900">
+                                        Manage Shifts
+                                    </span>
                                 </button>
 
                                 <button
@@ -230,6 +244,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
 
             <SyncManager isOpen={showSyncManager} onClose={() => setShowSyncManager(false)} />
+
+            {selectedSite && (
+                <ShiftManager
+                    isOpen={showShiftManager}
+                    onClose={() => setShowShiftManager(false)}
+                    siteId={selectedSite.id}
+                    siteName={selectedSite.name}
+                />
+            )}
         </>
     );
 };

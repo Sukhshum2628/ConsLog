@@ -107,7 +107,7 @@ function InnerApp() {
     }
   };
 
-  const handleStartHalt = (data: { category: string; subcategory?: string }) => {
+  const handleStartHalt = (data: { category: string; subcategory?: string; shiftId?: string; shiftName?: string }) => {
     addEntry(data);
     setShowStartModal(false);
   };
@@ -240,7 +240,7 @@ function InnerApp() {
   // Dashboard View
   if (view === 'dashboard') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 p-4 animate-fadeIn">
+      <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 p-4 animate-slideInRight">
         <DashboardPage
           logs={logs}
           onBack={() => setView('logs')}

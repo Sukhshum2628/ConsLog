@@ -35,7 +35,7 @@ export function LogViewerModal({ date, logs, onClose, siteName, userInfo }: LogV
                     </div>
                     {siteName && <p className="text-xs text-gray-500 ml-7">{siteName}</p>}
                 </div>
-                <button onClick={onClose} className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">
+                <button onClick={onClose} className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors transform duration-200 hover:scale-110 active:scale-95">
                     <X size={20} />
                 </button>
             </div>

@@ -1,23 +1,60 @@
-import React, { useState } from 'react';
-import { X, Play } from 'lucide-react';
-import { HALT_CATEGORIES } from '../db';
+import React, { useState, useEffect } from 'react';
+import { X, Play, Clock } from 'lucide-react';
+import { HALT_CATEGORIES, type Shift } from '../db';
+import { useSites } from '../hooks/useSites';
+import { useAuth } from '../context/AuthContext';
+import { ShiftService } from '../services/shiftService';
 
 interface StartHaltModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onStart: (data: { category: string; subcategory?: string }) => void;
+    onStart: (data: { category: string; subcategory?: string; shiftId?: string; shiftName?: string }) => void;
 }
 
 export const StartHaltModal: React.FC<StartHaltModalProps> = ({ isOpen, onClose, onStart }) => {
+    const { user } = useAuth();
+    const { selectedSite } = useSites();
     const [category, setCategory] = useState<string>(HALT_CATEGORIES[0]);
     const [subcategory, setSubcategory] = useState('');
 
+    // Shift State
+    const [shifts, setShifts] = useState<Shift[]>([]);
+    const [selectedShiftId, setSelectedShiftId] = useState<string>('');
+
+    // Load shifts when modal opens
+    useEffect(() => {
+        if (isOpen && user && selectedSite) {
+            ShiftService.getShiftsBySite(user.uid, selectedSite.id)
+                .then(fetched => {
+                    setShifts(fetched);
+                    // Auto-select current shift
+                    const current = ShiftService.getCurrentShift(fetched);
+                    if (current) {
+                        setSelectedShiftId(current.id);
+                    } else if (fetched.length > 0) {
+                        // Optional: Select first or none?
+                        // Let's select none but maybe user wants to force one.
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+    }, [isOpen, user, selectedSite]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onStart({ category, subcategory: subcategory || undefined });
+
+        const selectedShift = shifts.find(s => s.id === selectedShiftId);
+
+        onStart({
+            category,
+            subcategory: subcategory || undefined,
+            shiftId: selectedShiftId || undefined,
+            shiftName: selectedShift?.name
+        });
         // Reset form
         setCategory(HALT_CATEGORIES[0]);
         setSubcategory('');
+        setSelectedShiftId('');
     };
 
     if (!isOpen) return null;
@@ -33,6 +70,27 @@ export const StartHaltModal: React.FC<StartHaltModalProps> = ({ isOpen, onClose,
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                    {/* Shift Selector (Only if shifts exist) */}
+                    {shifts.length > 0 && (
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
+                                <Clock size={12} /> Shift
+                            </label>
+                            <select
+                                value={selectedShiftId}
+                                onChange={(e) => setSelectedShiftId(e.target.value)}
+                                className="w-full p-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none font-medium text-blue-900"
+                            >
+                                <option value="">-- No Shift --</option>
+                                {shifts.map((shift) => (
+                                    <option key={shift.id} value={shift.id}>
+                                        {shift.name} ({shift.startTime} - {shift.endTime})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Category</label>
                         <select

@@ -11,6 +11,16 @@ interface TrainLog {
   siteId?: string; // New field for multi-site support
   category: string;
   subcategory?: string;
+  shiftId?: string; // Link to Shift
+  shiftName?: string; // Snapshot of shift name
+}
+
+export interface Shift {
+  id: string;
+  name: string;      // e.g. "Morning Shift"
+  startTime: string; // "06:00"
+  endTime: string;   // "14:00"
+  siteId: string;    // Shifts belong to a specific site
 }
 
 export const HALT_CATEGORIES = [

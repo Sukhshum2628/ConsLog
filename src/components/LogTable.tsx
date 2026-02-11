@@ -212,12 +212,19 @@ export const LogTable = React.memo<LogTableProps>(({ logs, onDelete, onEdit, rea
                                             </td>
                                         )}
                                         <td className="p-3">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md inline-block whitespace-nowrap">
-                                                    {log.category || 'Other'}
-                                                </span>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex flex-wrap gap-1">
+                                                    <span className="text-xs font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md inline-block whitespace-nowrap">
+                                                        {log.category || 'Other'}
+                                                    </span>
+                                                    {log.shiftName && (
+                                                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-md inline-block whitespace-nowrap">
+                                                            {log.shiftName}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 {log.subcategory && (
-                                                    <span className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[80px]">
+                                                    <span className="text-[10px] text-gray-400 truncate max-w-[80px]">
                                                         {log.subcategory}
                                                     </span>
                                                 )}

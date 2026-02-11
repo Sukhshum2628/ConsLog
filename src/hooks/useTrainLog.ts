@@ -276,7 +276,7 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
     // Context for Service
     const context = { userId: user?.uid, lobbyId };
 
-    const addEntry = useCallback(async (data: { category: string; subcategory?: string }) => {
+    const addEntry = useCallback(async (data: { category: string; subcategory?: string; shiftId?: string; shiftName?: string }) => {
         // ... (Same as before)
         const alreadyRunning = logs.find(l => l.status === 'RUNNING');
         if (alreadyRunning) {
@@ -291,7 +291,9 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
                 status: 'RUNNING' as const, // Explicit cast
                 siteId: viewingSiteId ?? undefined,
                 category: data.category,
-                subcategory: data.subcategory
+                subcategory: data.subcategory,
+                shiftId: data.shiftId,
+                shiftName: data.shiftName
             };
 
             const createdLog = await HaltService.createHalt(newLogData, context);
