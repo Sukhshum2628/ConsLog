@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { SmartButton } from './components/SmartButton';
 import { LogTable } from './components/LogTable';
 import { HistoryModal } from './components/HistoryModal';
 import { EditLogModal } from './components/EditLogModal';
 import { EditProfileModal } from './components/EditProfileModal';
-import { ExportOptionsModal } from './components/ExportOptionsModal';
+import { ReportModal, ReportOptions } from './components/ReportModal';
 import { SettingsModal } from './components/SettingsModal';
 import { Onboarding } from './components/Onboarding';
 import { StartHaltModal } from './components/StartHaltModal';
 import { DashboardPage } from './components/DashboardPage';
 import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel, exportToPDF } from './utils/export';
-import { format } from 'date-fns';
+import { format, isWithinInterval } from 'date-fns';
 import { Download, History, Settings, Wifi, WifiOff, RefreshCw, Menu, MapPin, BarChart2 } from 'lucide-react';
 import { useModal, ModalProvider } from './context/ModalContext';
 import type { TrainLog } from './db';
@@ -115,7 +115,7 @@ function InnerApp() {
   const { user } = useAuth();
 
   const [showHistory, setShowHistory] = useState(false);
-  const [showExportOptions, setShowExportOptions] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [editingLog, setEditingLog] = useState<TrainLog | null>(null);
 
@@ -133,14 +133,6 @@ function InnerApp() {
   const handleStartHalt = (data: { category: string; subcategory?: string }) => {
     addEntry(data);
     setShowStartModal(false);
-  };
-
-  const handleExportClick = () => {
-    if (logs.length === 0) {
-      showAlert({ title: 'No Logs', message: 'No logs to export today.', type: 'info' });
-      return;
-    }
-    setShowExportOptions(true);
   };
 
   /* New State for Profile */
@@ -174,27 +166,69 @@ function InnerApp() {
     fetchProfile();
   }, [user]);
 
+  /* Reports Logic */
+  const handleExportClick = () => {
+    if (logs.length === 0) {
+      showAlert({ title: 'No Logs', message: 'No logs to export today.', type: 'info' });
+      return;
+    }
+    setShowReportModal(true);
+  };
 
-  /* New: Export Logic with Combined Logs */
-  const processExport = (type: 'excel' | 'pdf', includeTeamLogs: boolean) => {
-    let logsToExport = logs.map(l => ({ ...l, owner: user?.displayName || 'Me' }));
+  const handleGenerateReport = (options: ReportOptions) => {
+    // 1. Combine all logs
+    let allLogs = logs.map(l => ({ ...l, owner: user?.displayName || 'Me', ownerId: user?.uid || 'me' }));
 
-    if (includeTeamLogs && partnerLogs.length > 0) {
+    if (partnerLogs.length > 0) {
       partnerLogs.forEach(partner => {
-        const partnerEntries = partner.logs.map(l => ({ ...l, owner: partner.displayName }));
-        logsToExport = [...logsToExport, ...partnerEntries];
+        const partnerEntries = partner.logs.map(l => ({ ...l, owner: partner.displayName, ownerId: partner.uid }));
+        allLogs = [...allLogs, ...partnerEntries];
       });
     }
 
-    // Sort combined logs by arrival time
-    logsToExport.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
+    // 2. Filter by Date
+    const filteredByDate = allLogs.filter(log => {
+      const logDate = new Date(log.arrival_timestamp);
+      return isWithinInterval(logDate, { start: options.startDate, end: options.endDate });
+    });
 
-    if (type === 'excel') {
-      exportToExcel(logsToExport);
+    // 3. Filter by User
+    const finalLogs = filteredByDate.filter(log => {
+      // If user is selecting "Me", we check against current user UID
+      // Use logical OR to handle local-only vs auth cases
+      const matchesMe = (options.selectedUserIds.includes(user?.uid || 'me') && (log.ownerId === user?.uid || log.ownerId === 'me'));
+      const matchesPartner = options.selectedUserIds.includes(log.ownerId);
+
+      return matchesMe || matchesPartner;
+    });
+
+    // 4. Sort
+    finalLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
+
+    if (finalLogs.length === 0) {
+      showAlert({ title: 'No Logs Found', message: 'No logs match the selected filters.', type: 'info' });
+      return;
+    }
+
+    if (options.format === 'excel') {
+      exportToExcel(finalLogs);
     } else {
-      exportToPDF(logsToExport, userProfile || { displayName: user?.displayName });
+      exportToPDF(finalLogs, userProfile || { displayName: user?.displayName });
     }
   };
+
+  // Prepare available users for the modal
+  const availableUsers = useMemo(() => {
+    const list = [];
+    if (user) {
+      list.push({ uid: user.uid, displayName: user.displayName || 'Me' });
+    }
+    partnerLogs.forEach(p => {
+      list.push({ uid: p.uid, displayName: p.displayName });
+    });
+    return list;
+  }, [user, partnerLogs]);
+
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('timeLog_hasOnboarded', 'true');
@@ -410,10 +444,12 @@ function InnerApp() {
       }
 
       {
-        showExportOptions && (
-          <ExportOptionsModal
-            onClose={() => setShowExportOptions(false)}
-            onExport={processExport}
+        showReportModal && (
+          <ReportModal
+            isOpen={showReportModal}
+            onClose={() => setShowReportModal(false)}
+            onGenerate={handleGenerateReport}
+            availableUsers={availableUsers}
           />
         )
       }
