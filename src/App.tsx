@@ -152,27 +152,28 @@ function InnerApp() {
     setShowReportModal(true);
   };
 
-  const handleGenerateReport = (options: ReportOptions) => {
-    // 1. Combine all logs
-    let allLogs = logs.map(l => ({ ...l, owner: user?.displayName || 'Me', ownerId: user?.uid || 'me' }));
+  const handleGenerateReport = async (options: ReportOptions) => {
+    // 1. Fetch Logs for Range (Async)
+    // Cast to allow extending with owner properties
+    let dbLogs = (await fetchLogsByRange(options.startDate, options.endDate, selectedSite?.id)) as (TrainLog & { owner?: string; ownerId?: string })[];
 
+    // 2. Combine with Partner Logs
     if (partnerLogs.length > 0) {
       partnerLogs.forEach(partner => {
-        const partnerEntries = partner.logs.map(l => ({ ...l, owner: partner.displayName, ownerId: partner.uid }));
-        allLogs = [...allLogs, ...partnerEntries];
+        const partnerEntries = partner.logs
+          .filter(l => {
+            const d = new Date(l.arrival_timestamp);
+            return isWithinInterval(d, { start: options.startDate, end: options.endDate });
+          })
+          .map(l => ({ ...l, owner: partner.displayName, ownerId: partner.uid }));
+
+        dbLogs = [...dbLogs, ...partnerEntries];
       });
     }
 
-    // 2. Filter by Date
-    const filteredByDate = allLogs.filter(log => {
-      const logDate = new Date(log.arrival_timestamp);
-      return isWithinInterval(logDate, { start: options.startDate, end: options.endDate });
-    });
-
     // 3. Filter by User
-    const finalLogs = filteredByDate.filter(log => {
+    const finalLogs = dbLogs.map(l => ({ ...l, owner: l.owner || user?.displayName || 'Me', ownerId: l.ownerId || user?.uid || 'me' })).filter(log => {
       // If user is selecting "Me", we check against current user UID
-      // Use logical OR to handle local-only vs auth cases
       const matchesMe = (options.selectedUserIds.includes(user?.uid || 'me') && (log.ownerId === user?.uid || log.ownerId === 'me'));
       const matchesPartner = options.selectedUserIds.includes(log.ownerId);
 

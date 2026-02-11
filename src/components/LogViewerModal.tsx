@@ -1,6 +1,5 @@
-import React from 'react';
 import { X, Download, Calendar } from 'lucide-react';
-import { TrainLog } from '../db';
+import type { TrainLog } from '../db';
 import { LogTable } from './LogTable';
 import { format } from 'date-fns';
 import { exportToExcel, exportToPDF } from '../utils/export';

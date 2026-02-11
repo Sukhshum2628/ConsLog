@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { X, Download, Check, Calendar, MoreVertical, Eye, Trash2 } from 'lucide-react';
+import { X, Download, Check, Calendar, Eye } from 'lucide-react';
 import { getAllLogs, type TrainLog } from '../db';
 import { exportToExcel, exportToPDF } from '../utils/export';
 import { format } from 'date-fns';

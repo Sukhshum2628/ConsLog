@@ -426,8 +426,8 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
 
         try {
             // Firestore Query
-            const startStr = format(startDate, 'yyyy-MM-dd');
-            const endStr = format(endDate, 'yyyy-MM-dd');
+            // const startStr = format(startDate, 'yyyy-MM-dd');
+            // const endStr = format(endDate, 'yyyy-MM-dd');
 
             // We use date string string comparison for broad range, then refine?
             // Actually, querying by 'date' string (yyyy-MM-dd) works for range if we want WHOLE days.
