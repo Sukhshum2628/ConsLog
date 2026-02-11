@@ -9,11 +9,12 @@ const config: CapacitorConfig = {
       scopes: ['profile', 'email'],
       clientId: '680232483390-4v6k3u899d13poflit6hf614ttrl01ge.apps.googleusercontent.com',
       forceCodeForRefreshToken: true,
-      FirebaseAuthentication: {
-        skipNativeAuth: false,
-        providers: ["microsoft.com", "google.com"],
-      },
     },
-  };
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ["microsoft.com", "google.com"],
+    },
+  },
+};
 
-  export default config;
+export default config;
