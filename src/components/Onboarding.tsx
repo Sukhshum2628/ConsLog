@@ -7,7 +7,7 @@ interface OnboardingProps {
 }
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
-    const { signInWithGoogle } = useAuth();
+    const { signInWithGoogle, signInWithMicrosoft } = useAuth();
 
     const handleGuest = () => {
         // Just complete, stay as guest
@@ -20,8 +20,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             onComplete();
         } catch (error) {
             console.error("Onboarding Login Error:", error);
-            // Even if fail, we might want to let them in or show error?
-            // For now, let's keep them here so they can retry or choose Guest.
+        }
+    };
+
+    const handleMicrosoftLogin = async () => {
+        try {
+            await signInWithMicrosoft();
+            onComplete();
+        } catch (error) {
+            console.error("Microsoft Login Error:", error);
         }
     };
 
@@ -57,6 +64,19 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     >
                         <Shield className="w-5 h-5" />
                         Sign In with Google
+                    </button>
+
+                    <button
+                        onClick={handleMicrosoftLogin}
+                        className="w-full py-4 bg-[#2F2F2F] text-white rounded-xl font-bold text-lg shadow-lg hover:bg-[#1a1a1a] transition-all flex items-center justify-center gap-3"
+                    >
+                        <svg className="w-5 h-5" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0 0H10.5556V10.5556H0V0Z" fill="#F25022" />
+                            <path d="M12.4444 0H23V10.5556H12.4444V0Z" fill="#7FBA00" />
+                            <path d="M0 12.4444H10.5556V23H0V12.4444Z" fill="#00A4EF" />
+                            <path d="M12.4444 12.4444H23V23H12.4444V12.4444Z" fill="#FFB900" />
+                        </svg>
+                        Sign In with Microsoft
                     </button>
 
                     <button

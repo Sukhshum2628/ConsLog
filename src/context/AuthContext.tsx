@@ -19,6 +19,7 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
+    signInWithMicrosoft: () => Promise<void>;
     signInWithEmail: (email: string, pass: string) => Promise<void>;
     signUpWithEmail: (email: string, pass: string) => Promise<void>;
     logout: () => Promise<void>;
@@ -63,6 +64,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const signInWithMicrosoft = async () => {
+        try {
+            const { microsoftProvider } = await import('../lib/firebase');
+            await signInWithPopup(auth, microsoftProvider);
+        } catch (error: any) {
+            console.error("Microsoft Sign-In Failed:", error);
+            throw error;
+        }
+    };
+
     const signInWithEmail = async (email: string, pass: string) => {
         await signInWithEmailAndPassword(auth, email, pass);
     };
@@ -101,6 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user,
             loading,
             signInWithGoogle,
+            signInWithMicrosoft,
             signInWithEmail,
             signUpWithEmail,
             logout,
