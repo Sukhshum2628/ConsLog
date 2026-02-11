@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { type TrainLog, HALT_CATEGORIES, type Shift } from '../db';
+import { type TrainLog, HALT_CATEGORIES } from '../db';
 import { format, set } from 'date-fns';
-import { X, Save, Clock } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { ShiftService } from '../services/shiftService';
+import { X, Save } from 'lucide-react';
 
 interface EditLogModalProps {
     log: TrainLog;
@@ -12,15 +10,10 @@ interface EditLogModalProps {
 }
 
 export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave }) => {
-    const { user } = useAuth();
     const [arrivalStr, setArrivalStr] = useState('');
     const [departureStr, setDepartureStr] = useState('');
     const [category, setCategory] = useState<string>('');
     const [subcategory, setSubcategory] = useState<string>('');
-
-    // Shift State
-    const [shifts, setShifts] = useState<Shift[]>([]);
-    const [selectedShiftId, setSelectedShiftId] = useState<string>('');
 
     useEffect(() => {
         if (log) {
@@ -32,27 +25,15 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
             }
             setCategory(log.category || HALT_CATEGORIES[0]);
             setSubcategory(log.subcategory || '');
-            setSelectedShiftId(log.shiftId || '');
-
-            // Load shifts for this log's site
-            if (user && log.siteId) {
-                ShiftService.getShiftsBySite(user.uid, log.siteId)
-                    .then(setShifts)
-                    .catch(console.error);
-            }
         }
-    }, [log, user]);
+    }, [log]);
 
     const handleSave = () => {
         try {
-            const selectedShift = shifts.find(s => s.id === selectedShiftId);
-
             const updatedLog = {
                 ...log,
                 category,
-                subcategory: subcategory || undefined,
-                shiftId: selectedShiftId || undefined,
-                shiftName: selectedShift?.name || undefined
+                subcategory: subcategory || undefined
             };
 
             // Update Arrival
@@ -109,27 +90,6 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
                 </div>
 
                 <div className="p-6 space-y-6">
-                    {/* Shift Selector */}
-                    {shifts.length > 0 && (
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1 flex items-center gap-1">
-                                <Clock size={12} /> Shift
-                            </label>
-                            <select
-                                value={selectedShiftId}
-                                onChange={(e) => setSelectedShiftId(e.target.value)}
-                                className="w-full p-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none font-medium text-blue-900"
-                            >
-                                <option value="">-- No Shift --</option>
-                                {shifts.map((shift) => (
-                                    <option key={shift.id} value={shift.id}>
-                                        {shift.name} ({shift.startTime} - {shift.endTime})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
                     {/* Category Selection */}
                     <div className="space-y-4">
                         <div>

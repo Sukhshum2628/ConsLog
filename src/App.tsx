@@ -12,6 +12,7 @@ import { DashboardPage } from './components/DashboardPage';
 import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel, exportToPDF } from './utils/export';
 import { format } from 'date-fns';
+import { getShiftName, getCurrentShiftName } from './utils/shiftUtils';
 import { Download, History, Settings, Wifi, WifiOff, RefreshCw, Menu, MapPin, BarChart2 } from 'lucide-react';
 import { useModal, ModalProvider } from './context/ModalContext';
 import type { TrainLog } from './db';
@@ -107,7 +108,7 @@ function InnerApp() {
     }
   };
 
-  const handleStartHalt = (data: { category: string; subcategory?: string; shiftId?: string; shiftName?: string }) => {
+  const handleStartHalt = (data: { category: string; subcategory?: string }) => {
     addEntry(data);
     setShowStartModal(false);
   };
@@ -331,8 +332,11 @@ function InnerApp() {
       <main className="flex-1 p-4 max-w-md mx-auto w-full flex flex-col gap-6 overflow-hidden">
         <section className="flex-1 flex flex-col min-h-0">
           <div className="flex justify-between items-end mb-2">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-2">
               {user ? `Team Logs (${logs.length})` : `Local Logs (${logs.length})`}
+              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100 normal-case">
+                {getCurrentShiftName()}
+              </span>
             </h2>
           </div>
 
@@ -363,6 +367,11 @@ function InnerApp() {
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                           <h3 className="font-bold text-gray-800 text-sm">{partner.displayName}</h3>
+                          {partner.logs.length > 0 && (
+                            <span className="text-[8px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase font-bold">
+                              {getShiftName(partner.logs[0].arrival_timestamp)}
+                            </span>
+                          )}
                         </div>
                         {siteInfo && (
                           <div className="flex items-center gap-1 text-[10px] text-gray-500 ml-4">
