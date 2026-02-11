@@ -409,9 +409,13 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
         }
     }, [user, showAlert]);
 
-    const fetchLogsByRange = useCallback(async (startDate: Date, endDate: Date, siteId?: string) => {
-        if (!user) {
-            // Local Guest Mode - Fetch from IDB
+    const fetchLogsByRange = useCallback(async (startDate: Date, endDate: Date, siteId?: string, targetUserId?: string) => {
+        const uidToUse = targetUserId || user?.uid;
+
+        if (!uidToUse) {
+            // Local Guest Mode - Fetch from IDB (Only if no targetUserId and no auth user)
+            // But if targetUserId is specific (e.g. looking for partner), we can't use local IDB.
+            // IDB is only for "me" when offline/guest.
             try {
                 const all = await import('../db').then(mod => mod.getAllLogs());
                 return all.filter(l => {
@@ -425,17 +429,9 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
         }
 
         try {
-            // Firestore Query
-            // const startStr = format(startDate, 'yyyy-MM-dd');
-            // const endStr = format(endDate, 'yyyy-MM-dd');
-
-            // We use date string string comparison for broad range, then refine?
-            // Actually, querying by 'date' string (yyyy-MM-dd) works for range if we want WHOLE days.
-            // ReportModal passes startOfDay and endOfDay dates.
-            // So we can use 'arrival_timestamp' for precise filtering.
-
+            // Firestore Query for specific user (Me or Partner)
             const q = query(
-                collection(db, 'users', user.uid, 'logs'),
+                collection(db, 'users', uidToUse, 'logs'),
                 where('arrival_timestamp', '>=', startDate.getTime()),
                 where('arrival_timestamp', '<=', endDate.getTime())
             );

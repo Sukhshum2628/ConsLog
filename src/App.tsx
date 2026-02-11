@@ -11,7 +11,7 @@ import { StartHaltModal } from './components/StartHaltModal';
 import { DashboardPage } from './components/DashboardPage';
 import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel, exportToPDF } from './utils/export';
-import { format, isWithinInterval } from 'date-fns';
+import { format } from 'date-fns';
 import { Download, History, Settings, Wifi, WifiOff, RefreshCw, Menu, MapPin, BarChart2 } from 'lucide-react';
 import { useModal, ModalProvider } from './context/ModalContext';
 import type { TrainLog } from './db';
@@ -153,45 +153,63 @@ function InnerApp() {
   };
 
   const handleGenerateReport = async (options: ReportOptions) => {
-    // 1. Fetch Logs for Range (Async)
-    // Cast to allow extending with owner properties
-    let dbLogs = (await fetchLogsByRange(options.startDate, options.endDate, selectedSite?.id)) as (TrainLog & { owner?: string; ownerId?: string })[];
+    try {
+      // Fetch logs for ALL selected users (Me + Partners) in parallel
+      const logsPromises = options.selectedUserIds.map(async (uid) => {
+        // Determine if this is "Me" or a Partner
+        const isMe = uid === user?.uid || uid === 'me';
+        // If "me", use user.uid (or let fetchLogsByRange handle fallbacks).
+        // If partner, use their UID directly.
+        const targetUnderlyingUid = (uid === 'me' && user?.uid) ? user.uid : uid;
 
-    // 2. Combine with Partner Logs
-    if (partnerLogs.length > 0) {
-      partnerLogs.forEach(partner => {
-        const partnerEntries = partner.logs
-          .filter(l => {
-            const d = new Date(l.arrival_timestamp);
-            return isWithinInterval(d, { start: options.startDate, end: options.endDate });
-          })
-          .map(l => ({ ...l, owner: partner.displayName, ownerId: partner.uid }));
+        // Skip if we can't resolve a valid UID (e.g. unauth "me")
+        // Actually fetchLogsByRange handles !user internally for local IDB.
 
-        dbLogs = [...dbLogs, ...partnerEntries];
+        let fetchUid: string | undefined = targetUnderlyingUid;
+        if (uid === 'me' && !user) fetchUid = undefined; // Trigger local IDB in hook
+
+        // Find display name
+        let displayName = 'Unknown';
+        if (isMe) {
+          displayName = user?.displayName || 'Me';
+        } else {
+          const partner = partnerLogs.find(p => p.uid === uid);
+          // If not in partnerLogs (maybe historic?), try to find in availableUsers?
+          // availableUsers is built from partnerLogs + Me.
+          displayName = partner?.displayName || 'Partner';
+        }
+
+        // Fetch
+        const fetched = await fetchLogsByRange(options.startDate, options.endDate, selectedSite?.id, fetchUid);
+
+        // Tag with owner info
+        return fetched.map(log => ({
+          ...log,
+          owner: displayName,
+          ownerId: uid // Keep 'me' or real UID
+        }));
       });
-    }
 
-    // 3. Filter by User
-    const finalLogs = dbLogs.map(l => ({ ...l, owner: l.owner || user?.displayName || 'Me', ownerId: l.ownerId || user?.uid || 'me' })).filter(log => {
-      // If user is selecting "Me", we check against current user UID
-      const matchesMe = (options.selectedUserIds.includes(user?.uid || 'me') && (log.ownerId === user?.uid || log.ownerId === 'me'));
-      const matchesPartner = options.selectedUserIds.includes(log.ownerId);
+      const nestedLogs = await Promise.all(logsPromises);
+      const finalLogs = nestedLogs.flat();
 
-      return matchesMe || matchesPartner;
-    });
+      // Sort
+      finalLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
 
-    // 4. Sort
-    finalLogs.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp);
+      if (finalLogs.length === 0) {
+        showAlert({ title: 'No Logs Found', message: 'No logs match the selected filters.', type: 'info' });
+        return;
+      }
 
-    if (finalLogs.length === 0) {
-      showAlert({ title: 'No Logs Found', message: 'No logs match the selected filters.', type: 'info' });
-      return;
-    }
+      if (options.format === 'excel') {
+        exportToExcel(finalLogs);
+      } else {
+        exportToPDF(finalLogs, userProfile || { displayName: user?.displayName });
+      }
 
-    if (options.format === 'excel') {
-      exportToExcel(finalLogs);
-    } else {
-      exportToPDF(finalLogs, userProfile || { displayName: user?.displayName });
+    } catch (e) {
+      console.error("Report generation failed", e);
+      showAlert({ title: 'Error', message: 'Failed to generate report.', type: 'danger' });
     }
   };
 
