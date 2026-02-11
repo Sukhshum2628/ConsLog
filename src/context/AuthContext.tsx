@@ -26,6 +26,8 @@ interface AuthContextType {
     logout: () => Promise<void>;
     sendVerification: () => Promise<void>;
     setUserPassword: (pass: string) => Promise<void>;
+    linkIdentity: (provider: 'google' | 'microsoft') => Promise<void>;
+    unlinkIdentity: (providerId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -114,6 +116,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const linkIdentity = async (providerName: 'google' | 'microsoft') => {
+        if (!auth.currentUser) return;
+
+        try {
+            const { linkWithCredential, OAuthProvider, GoogleAuthProvider } = await import('firebase/auth');
+
+            let credential;
+
+            if (Capacitor.getPlatform() === 'web') {
+                // Web Linking
+                const { linkWithPopup } = await import('firebase/auth');
+                if (providerName === 'google') {
+                    const provider = new GoogleAuthProvider();
+                    await linkWithPopup(auth.currentUser, provider);
+                } else {
+                    const { microsoftProvider } = await import('../lib/firebase');
+                    await linkWithPopup(auth.currentUser, microsoftProvider);
+                }
+                alert("Account Linked Successfully!");
+                return;
+            }
+
+            // Native Linking
+            if (providerName === 'google') {
+                const googleUser = await GoogleAuth.signIn();
+                credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+            } else {
+                const result = await FirebaseAuthentication.signInWithMicrosoft();
+                if (result.credential) {
+                    const provider = new OAuthProvider('microsoft.com');
+                    credential = provider.credential({
+                        idToken: result.credential.idToken,
+                        accessToken: result.credential.accessToken
+                    });
+                }
+            }
+
+            if (credential) {
+                await linkWithCredential(auth.currentUser, credential);
+                alert("Account Linked Successfully!");
+            }
+
+        } catch (error: any) {
+            console.error("Link Identity Failed:", error);
+            // Alert handled by caller or here
+            if (Capacitor.getPlatform() !== 'web') {
+                alert(`Link Failed: ${error.message}`);
+            }
+            throw error;
+        }
+    };
+
+    const unlinkIdentity = async (providerId: string) => {
+        if (!auth.currentUser) return;
+        try {
+            const { unlink } = await import('firebase/auth');
+            await unlink(auth.currentUser, providerId);
+            alert("Account Unlinked Successfully!");
+        } catch (error: any) {
+            console.error("Unlink Failed:", error);
+            alert(`Unlink Failed: ${error.message}`);
+            throw error;
+        }
+    };
+
     const logout = async () => {
         try {
             await signOut(auth);
@@ -135,7 +202,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             signUpWithEmail,
             logout,
             sendVerification,
-            setUserPassword
+            setUserPassword,
+            linkIdentity,
+            unlinkIdentity
         }}>
             {children}
         </AuthContext.Provider>
