@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { SmartButton } from './components/SmartButton';
 import { LogTable } from './components/LogTable';
 import { HistoryModal } from './components/HistoryModal';
@@ -33,6 +34,11 @@ function InnerApp() {
   const { showAlert, showConfirm } = useModal();
   useSyncNotifications();
   const { broadcastSiteChange } = useSyncActions();
+
+  // OTA Update Logic
+  useEffect(() => {
+    CapacitorUpdater.notifyAppReady();
+  }, []);
 
   // Multi-Site Hook
   const { selectedSite, selectSite } = useSites();

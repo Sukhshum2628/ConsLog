@@ -14,6 +14,9 @@ const config: CapacitorConfig = {
       skipNativeAuth: false,
       providers: ["microsoft.com", "google.com"],
     },
+    CapacitorUpdater: {
+      autoUpdate: true,
+    }
   },
 };
 
