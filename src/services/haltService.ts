@@ -10,6 +10,21 @@ export interface LogContext {
 
 export const HaltService = {
     /**
+     * Helper to sanitize data for Firestore (remove undefined)
+     */
+    sanitizeData: <T extends object>(data: T): T => {
+        const sanitized = { ...data };
+        Object.keys(sanitized).forEach(key => {
+            // @ts-ignore
+            if (sanitized[key] === undefined) {
+                // @ts-ignore
+                sanitized[key] = null;
+            }
+        });
+        return sanitized;
+    },
+
+    /**
      * Create a new halt log
      */
     createHalt: async (data: Omit<TrainLog, 'id' | 'created_at'>, context: LogContext) => {
@@ -19,13 +34,15 @@ export const HaltService = {
             created_at: Date.now(),
         };
 
+        const sanitizedLog = HaltService.sanitizeData(newLog);
+
         if (context.lobbyId) {
-            await setDoc(doc(db, 'lobbies', context.lobbyId, 'logs', String(newLog.id)), newLog);
+            await setDoc(doc(db, 'lobbies', context.lobbyId, 'logs', String(newLog.id)), sanitizedLog);
         } else if (context.userId) {
-            await setDoc(doc(db, 'users', context.userId, 'logs', String(newLog.id)), newLog);
+            await setDoc(doc(db, 'users', context.userId, 'logs', String(newLog.id)), sanitizedLog);
         } else {
             // Local fallback (Guest)
-            await addLog(newLog);
+            await addLog(newLog); // Local DB might handle undefined, but consistent is better
         }
         return newLog;
     },
@@ -34,10 +51,12 @@ export const HaltService = {
      * Update an existing halt log
      */
     updateHalt: async (log: TrainLog, context: LogContext) => {
+        const sanitizedLog = HaltService.sanitizeData(log);
+
         if (context.lobbyId) {
-            await setDoc(doc(db, 'lobbies', context.lobbyId, 'logs', String(log.id)), log);
+            await setDoc(doc(db, 'lobbies', context.lobbyId, 'logs', String(log.id)), sanitizedLog);
         } else if (context.userId) {
-            await setDoc(doc(db, 'users', context.userId, 'logs', String(log.id)), log);
+            await setDoc(doc(db, 'users', context.userId, 'logs', String(log.id)), sanitizedLog);
         } else {
             await updateLog(log);
         }
