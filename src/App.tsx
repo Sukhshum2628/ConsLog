@@ -3,6 +3,7 @@ import { SmartButton } from './components/SmartButton';
 import { LogTable } from './components/LogTable';
 import { HistoryModal } from './components/HistoryModal';
 import { EditLogModal } from './components/EditLogModal';
+import { EditProfileModal } from './components/EditProfileModal';
 import { ExportOptionsModal } from './components/ExportOptionsModal';
 import { SettingsModal } from './components/SettingsModal';
 import { Onboarding } from './components/Onboarding';
@@ -109,6 +110,7 @@ function InnerApp() {
   /* New State for Profile */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -118,7 +120,23 @@ function InnerApp() {
           const { db } = await import('./lib/firebase');
           const snap = await getDoc(doc(db, 'users', user.uid));
           if (snap.exists()) {
-            setUserProfile(snap.data());
+            const data = snap.data();
+            setUserProfile(data);
+
+            // Check for incomplete profile (missing username)
+            // Use sessionStorage to prevent annoying loop in same session if they close it
+            const hasSeenPrompt = sessionStorage.getItem('profile_prompt_shown');
+            if (!data.username && !hasSeenPrompt) {
+              setShowProfileModal(true);
+              sessionStorage.setItem('profile_prompt_shown', 'true');
+            }
+          } else {
+            // New user (no doc yet), definitely show it
+            const hasSeenPrompt = sessionStorage.getItem('profile_prompt_shown');
+            if (!hasSeenPrompt) {
+              setShowProfileModal(true);
+              sessionStorage.setItem('profile_prompt_shown', 'true');
+            }
           }
         } catch (e) {
           console.error("Profile fetch error", e);
@@ -360,9 +378,23 @@ function InnerApp() {
           <SettingsModal
             isOpen={showSettings}
             onClose={() => setShowSettings(false)}
+            onEditProfile={() => {
+              setShowSettings(false); // Close settings when opening profile? Or keep it open?
+              // Usually profile modal is on top. If we close settings, it feels like a navigation.
+              // Let's close settings for clarity, or just open profile on top. 
+              // If I close settings, `onClose` triggers.
+              // Let's just open profile. 
+              setShowProfileModal(true);
+            }}
           />
         )
       }
+
+      {/* Profile Modal (Global) */}
+      <EditProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
     </div >
   );
 }

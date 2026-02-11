@@ -3,7 +3,7 @@ import { X, User, LogOut, Settings, Shield, Users, Info, ArrowRight, Trash2 } fr
 import { useModal } from '../context/ModalContext';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
-import { EditProfileModal } from './EditProfileModal';
+
 import { SyncManager } from './SyncManager';
 
 import { useTrainLog } from '../hooks/useTrainLog';
@@ -11,14 +11,15 @@ import { useTrainLog } from '../hooks/useTrainLog';
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onEditProfile: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onEditProfile }) => {
     const { user, logout } = useAuth();
     const { activeLog, clearAllLogs } = useTrainLog();
     const { showAlert, showConfirm } = useModal();
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [showProfileModal, setShowProfileModal] = useState(false);
+    // const [showProfileModal, setShowProfileModal] = useState(false); // Removed internal state
     const [showSyncManager, setShowSyncManager] = useState(false);
     const [view, setView] = useState<'main' | 'privacy'>('main');
     const version = "2.0.0 (Build 15)";
@@ -108,7 +109,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                                 </div>
 
                                 <button
-                                    onClick={() => setShowProfileModal(true)}
+                                    onClick={onEditProfile}
                                     className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 rounded-2xl transition-all text-left group border border-transparent hover:border-gray-100"
                                 >
                                     <div className="p-2 bg-gray-100 rounded-xl group-hover:bg-blue-100 transition-colors">
@@ -227,7 +228,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
 
             <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-            <EditProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
+
             <SyncManager isOpen={showSyncManager} onClose={() => setShowSyncManager(false)} />
         </>
     );
