@@ -168,7 +168,7 @@ export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fi
 export const exportToExcel = async (logs: ExportLog[], fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
     try {
         const data: any[] = logs.map(log => ({
-            'User': log.owner || 'Me',
+            'User': `${log.owner || 'Me'}${log.shiftName ? ` - ${log.shiftName}` : ''}`,
             'Date': format(log.arrival_timestamp, 'yyyy-MM-dd'),
             'Site': log.siteName || log.siteId || '-',
             'Category': log.category,

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { useSites } from '../hooks/useSites';
-import { ShiftManager } from './ShiftManager';
-import { Briefcase, ArrowRight, X, Shield, Settings, User, Users, Trash2, LogOut, Info } from 'lucide-react';
+import { ArrowRight, X, Shield, Settings, User, Users, Trash2, LogOut, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTrainLog } from '../hooks/useTrainLog';
 import { useModal } from '../context/ModalContext';
@@ -18,11 +16,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     const { user, logout } = useAuth();
     const { activeLog, clearAllLogs } = useTrainLog();
     const { showAlert, showConfirm } = useModal();
-    const { selectedSite } = useSites();
     const [showAuthModal, setShowAuthModal] = useState(false);
-    // const [showProfileModal, setShowProfileModal] = useState(false); // Removed internal state
     const [showSyncManager, setShowSyncManager] = useState(false);
-    const [showShiftManager, setShowShiftManager] = useState(false);
     const [view, setView] = useState<'main' | 'privacy'>('main');
     const version = "2.0.0 (Build 15)";
 
@@ -131,18 +126,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                 </button>
 
                                 <button
-                                    onClick={() => setShowShiftManager(true)}
-                                    className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 rounded-2xl transition-all text-left group border border-transparent hover:border-gray-100"
-                                >
-                                    <div className="p-2 bg-gray-100 rounded-xl group-hover:bg-indigo-100 transition-colors">
-                                        <Briefcase size={20} className="text-gray-500 group-hover:text-indigo-600" />
-                                    </div>
-                                    <span className="font-semibold text-gray-700 group-hover:text-gray-900">
-                                        Manage Shifts
-                                    </span>
-                                </button>
-
-                                <button
                                     onClick={() => setView('privacy')}
                                     className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 rounded-2xl transition-all text-left group border border-transparent hover:border-gray-100"
                                 >
@@ -165,7 +148,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                         });
 
                                         if (confirmed) {
-                                            // TODO: We need clearAllLogs from useTrainLog. 
                                             await clearAllLogs();
                                             onClose();
                                         }
@@ -244,15 +226,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
 
             <SyncManager isOpen={showSyncManager} onClose={() => setShowSyncManager(false)} />
-
-            {selectedSite && (
-                <ShiftManager
-                    isOpen={showShiftManager}
-                    onClose={() => setShowShiftManager(false)}
-                    siteId={selectedSite.id}
-                    siteName={selectedSite.name}
-                />
-            )}
         </>
     );
 };

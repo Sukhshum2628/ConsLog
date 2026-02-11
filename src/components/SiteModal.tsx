@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin } from 'lucide-react';
 import { useSites, type Site } from '../hooks/useSites';
+import { InlineShiftManager } from './ShiftManager';
 
 interface SiteModalProps {
     onClose: () => void;
@@ -73,6 +74,12 @@ export const SiteModal: React.FC<SiteModalProps> = ({ onClose, site }) => {
                             />
                         </div>
                     </div>
+
+                    {site && (
+                        <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+                            <InlineShiftManager siteId={site.id} />
+                        </div>
+                    )}
 
                     <div className="pt-4">
                         <button
