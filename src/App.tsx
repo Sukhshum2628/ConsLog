@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { SmartButton } from './components/SmartButton';
 import { LogTable } from './components/LogTable';
 import { HistoryModal } from './components/HistoryModal';
@@ -34,29 +33,6 @@ function InnerApp() {
   const { showAlert, showConfirm } = useModal();
   useSyncNotifications();
   const { broadcastSiteChange } = useSyncActions();
-
-  // OTA Update Logic
-  useEffect(() => {
-    CapacitorUpdater.notifyAppReady();
-
-    CapacitorUpdater.addListener('updateAvailable', (info) => {
-      console.log('Update available:', info);
-    });
-
-    CapacitorUpdater.addListener('downloadComplete', (info) => {
-      console.log('Download complete:', info);
-      showConfirm({
-        title: 'Update Ready',
-        message: 'A new version has been downloaded. Restart now to apply?',
-        confirmText: 'Restart',
-        cancelText: 'Later'
-      }).then((shouldRestart) => {
-        if (shouldRestart) {
-          CapacitorUpdater.set({ id: info.bundle.id });
-        }
-      });
-    });
-  }, []);
 
   // Multi-Site Hook
   const { selectedSite, selectSite } = useSites();

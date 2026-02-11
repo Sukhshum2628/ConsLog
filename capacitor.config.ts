@@ -13,10 +13,6 @@ const config: CapacitorConfig = {
     FirebaseAuthentication: {
       skipNativeAuth: false,
       providers: ["microsoft.com", "google.com"],
-    },
-    CapacitorUpdater: {
-      autoUpdate: true,
-      channel: 'production',
     }
   },
 };
