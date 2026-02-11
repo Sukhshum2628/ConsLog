@@ -43,18 +43,17 @@ function InnerApp() {
       console.log('Update available:', info);
     });
 
-    CapacitorUpdater.addListener('downloadComplete', (info) => {
-      console.log('Download complete:', info);
-      showConfirm({
-        title: 'Update Ready',
-        message: 'A new version has been downloaded. Restart now to apply?',
-        confirmText: 'Restart',
-        cancelText: 'Later'
-      }).then((shouldRestart) => {
-        if (shouldRestart) {
-          CapacitorUpdater.set(info);
-        }
-      });
+    console.log('Download complete:', info);
+    showConfirm({
+      title: 'Update Ready',
+      message: 'A new version has been downloaded. Restart now to apply?',
+      confirmText: 'Restart',
+      cancelText: 'Later'
+    }).then((shouldRestart) => {
+      if (shouldRestart) {
+        // Fix: info has 'bundle', set() expects { id: string }
+        CapacitorUpdater.set({ id: info.bundle });
+      }
     });
   }, []);
 
