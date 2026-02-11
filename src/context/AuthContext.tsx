@@ -12,6 +12,7 @@ import {
     updatePassword
 } from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth } from '../lib/firebase';
 import { Capacitor } from '@capacitor/core';
 
@@ -66,8 +67,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const signInWithMicrosoft = async () => {
         try {
-            const { microsoftProvider } = await import('../lib/firebase');
-            await signInWithPopup(auth, microsoftProvider);
+            if (Capacitor.getPlatform() === 'web') {
+                const { microsoftProvider } = await import('../lib/firebase');
+                await signInWithPopup(auth, microsoftProvider);
+            } else {
+                // Native Microsoft Auth
+                const result = await FirebaseAuthentication.signInWithMicrosoft();
+                // The plugin returns a credential with idToken/accessToken
+                if (result.credential) {
+                    const { OAuthProvider } = await import('firebase/auth');
+                    // We need to construct a Firebase Credential from the ID Token.
+
+                    const provider = new OAuthProvider('microsoft.com');
+                    const credential = provider.credential({
+                        idToken: result.credential.idToken,
+                        accessToken: result.credential.accessToken
+                    });
+                    await signInWithCredential(auth, credential);
+                }
+            }
         } catch (error: any) {
             console.error("Microsoft Sign-In Failed:", error);
             throw error;
