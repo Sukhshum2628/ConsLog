@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { X, Calendar, Users, FileText, Download, Check } from 'lucide-react';
-import { format, subDays, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 
 interface ReportModalProps {
     isOpen: boolean;

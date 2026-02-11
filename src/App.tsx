@@ -5,7 +5,7 @@ import { LogTable } from './components/LogTable';
 import { HistoryModal } from './components/HistoryModal';
 import { EditLogModal } from './components/EditLogModal';
 import { EditProfileModal } from './components/EditProfileModal';
-import { ReportModal, ReportOptions } from './components/ReportModal';
+import { ReportModal, type ReportOptions } from './components/ReportModal';
 import { SettingsModal } from './components/SettingsModal';
 import { Onboarding } from './components/Onboarding';
 import { StartHaltModal } from './components/StartHaltModal';
