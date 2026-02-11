@@ -7,10 +7,12 @@ import { EditProfileModal } from './components/EditProfileModal';
 import { ExportOptionsModal } from './components/ExportOptionsModal';
 import { SettingsModal } from './components/SettingsModal';
 import { Onboarding } from './components/Onboarding';
+import { StartHaltModal } from './components/StartHaltModal';
+import { DashboardPage } from './components/DashboardPage';
 import { useTrainLog } from './hooks/useTrainLog';
 import { exportToExcel, exportToPDF } from './utils/export';
 import { format } from 'date-fns';
-import { Download, History, Settings, Wifi, WifiOff, RefreshCw, Menu, MapPin } from 'lucide-react';
+import { Download, History, Settings, Wifi, WifiOff, RefreshCw, Menu, MapPin, BarChart2 } from 'lucide-react';
 import { useModal, ModalProvider } from './context/ModalContext';
 import type { TrainLog } from './db';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -19,7 +21,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { useSyncNotifications } from './hooks/useSyncNotifications';
 import { useSyncActions } from './hooks/useSyncActions';
-import { useSites, type Site } from './hooks/useSites'; // Ensure Site type
+import { useSites, type Site } from './hooks/useSites';
 import { Sidebar } from './components/Sidebar';
 
 // Inner App component that uses Context
@@ -28,13 +30,16 @@ function InnerApp() {
     return localStorage.getItem('timeLog_hasOnboarded') === 'true';
   });
 
-  const { showAlert, showConfirm } = useModal(); // Destructure showConfirm
-  useSyncNotifications(); // <--- LISTENER
-  const { broadcastSiteChange } = useSyncActions(); // <--- ACTIONS
+  const { showAlert, showConfirm } = useModal();
+  useSyncNotifications();
+  const { broadcastSiteChange } = useSyncActions();
 
   // Multi-Site Hook
   const { selectedSite, selectSite } = useSites();
   const [showSidebar, setShowSidebar] = useState(false);
+
+  // View State
+  const [view, setView] = useState<'logs' | 'dashboard'>('logs');
 
   // Network Status
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -65,7 +70,6 @@ function InnerApp() {
 
   // Site Selection with Sync Guard
   const handleSelectSite = async (site: Site) => {
-    // If we are currently syncing (have partners), we must warn and notify
     if (partnerLogs.length > 0) {
       const confirmed = await showConfirm({
         title: 'Switch Site & Update Sync?',
@@ -91,12 +95,20 @@ function InnerApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [editingLog, setEditingLog] = useState<TrainLog | null>(null);
 
+  /* New State for Halt Categorization */
+  const [showStartModal, setShowStartModal] = useState(false);
+
   const handleSmartButtonPress = () => {
     if (activeLog) {
       completeEntry(activeLog);
     } else {
-      addEntry();
+      setShowStartModal(true);
     }
+  };
+
+  const handleStartHalt = (data: { category: string; subcategory?: string }) => {
+    addEntry(data);
+    setShowStartModal(false);
   };
 
   const handleExportClick = () => {
@@ -123,20 +135,12 @@ function InnerApp() {
             const data = snap.data();
             setUserProfile(data);
 
-            // Check for incomplete profile (missing username)
-            // Use sessionStorage to prevent annoying loop in same session if they close it
-            const hasSeenPrompt = sessionStorage.getItem('profile_prompt_shown');
-            if (!data.username && !hasSeenPrompt) {
+            if (!data.username) {
               setShowProfileModal(true);
-              sessionStorage.setItem('profile_prompt_shown', 'true');
             }
           } else {
             // New user (no doc yet), definitely show it
-            const hasSeenPrompt = sessionStorage.getItem('profile_prompt_shown');
-            if (!hasSeenPrompt) {
-              setShowProfileModal(true);
-              sessionStorage.setItem('profile_prompt_shown', 'true');
-            }
+            setShowProfileModal(true);
           }
         } catch (e) {
           console.error("Profile fetch error", e);
@@ -177,6 +181,18 @@ function InnerApp() {
 
   if (!hasOnboarded) {
     return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  // Dashboard View
+  if (view === 'dashboard') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 p-4">
+        <DashboardPage
+          logs={logs}
+          onBack={() => setView('logs')}
+        />
+      </div>
+    );
   }
 
   return (
@@ -224,6 +240,15 @@ function InnerApp() {
             </div>
           </div>
           <div className="flex gap-2">
+
+            <button
+              onClick={() => setView('dashboard')}
+              className="p-2 bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-colors"
+              title="Dashboard"
+            >
+              <BarChart2 className="w-5 h-5" />
+            </button>
+
             <button
               onClick={() => setShowHistory(true)}
               className="p-2 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
@@ -270,18 +295,14 @@ function InnerApp() {
           user && partnerLogs.length > 0 && (
             <section className="flex-none space-y-4">
               {partnerLogs.map(partner => {
-                // Determine the primary site for this batch of logs
                 const primarySiteId = partner.logs[0]?.siteId;
-                // @ts-ignore - 'sites' might not be in the type definition if IDE is checking strict, but we added it to hook.
-                // However, TS checks against the import. PartnerData is defined in useTrainLog.ts.
-                // We need to make sure App.tsx sees the updated type.
-                // If not, we cast or use careful access.
+                // @ts-ignore 
                 const siteInfo = primarySiteId && partner.sites ? partner.sites[primarySiteId] : null;
 
                 return (
                   <div
-                    key={partner.uid + (partner.syncedSiteId || '')} // Updated key
-                    className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden animate-in fade-in duration-500" // Added animation classes
+                    key={partner.uid + (partner.syncedSiteId || '')}
+                    className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden animate-in fade-in duration-500"
                   >
                     <div className="bg-blue-50 p-3 flex justify-between items-center">
                       <div className="flex flex-col gap-0.5">
@@ -374,16 +395,22 @@ function InnerApp() {
       }
 
       {
+        showStartModal && (
+          <StartHaltModal
+            isOpen={showStartModal}
+            onClose={() => setShowStartModal(false)}
+            onStart={handleStartHalt}
+          />
+        )
+      }
+
+      {
         showSettings && (
           <SettingsModal
             isOpen={showSettings}
             onClose={() => setShowSettings(false)}
             onEditProfile={() => {
-              setShowSettings(false); // Close settings when opening profile? Or keep it open?
-              // Usually profile modal is on top. If we close settings, it feels like a navigation.
-              // Let's close settings for clarity, or just open profile on top. 
-              // If I close settings, `onClose` triggers.
-              // Let's just open profile. 
+              setShowSettings(false);
               setShowProfileModal(true);
             }}
           />

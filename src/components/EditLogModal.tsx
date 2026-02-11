@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { TrainLog } from '../db';
+import { type TrainLog, HALT_CATEGORIES } from '../db';
 import { format, set } from 'date-fns';
 import { X, Save } from 'lucide-react';
 
@@ -12,6 +12,8 @@ interface EditLogModalProps {
 export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave }) => {
     const [arrivalStr, setArrivalStr] = useState('');
     const [departureStr, setDepartureStr] = useState('');
+    const [category, setCategory] = useState<string>('');
+    const [subcategory, setSubcategory] = useState<string>('');
 
     useEffect(() => {
         if (log) {
@@ -21,12 +23,18 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
             } else {
                 setDepartureStr('');
             }
+            setCategory(log.category || HALT_CATEGORIES[0]);
+            setSubcategory(log.subcategory || '');
         }
     }, [log]);
 
     const handleSave = () => {
         try {
-            const updatedLog = { ...log };
+            const updatedLog = {
+                ...log,
+                category,
+                subcategory: subcategory || undefined
+            };
 
             // Update Arrival
             if (arrivalStr) {
@@ -74,7 +82,7 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
                 <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b flex justify-between items-center">
                     <div>
                         <h3 className="font-bold text-xl text-gray-900">Edit Entry</h3>
-                        <p className="text-sm text-gray-500">Adjust timing details (HH:MM:SS)</p>
+                        <p className="text-sm text-gray-500">Adjust details</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
                         <X className="w-6 h-6" />
@@ -82,6 +90,36 @@ export const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onSave
                 </div>
 
                 <div className="p-6 space-y-6">
+                    {/* Category Selection */}
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Category</label>
+                            <select
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none font-medium text-gray-800"
+                            >
+                                {HALT_CATEGORIES.map((cat) => (
+                                    <option key={cat} value={cat}>
+                                        {cat}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Subcategory / Note</label>
+                            <input
+                                type="text"
+                                value={subcategory}
+                                onChange={(e) => setSubcategory(e.target.value)}
+                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-gray-800"
+                                placeholder="Optional details..."
+                            />
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 my-2"></div>
+
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Arrival Time</label>
                         <input

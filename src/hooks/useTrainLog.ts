@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { addLog, updateLog, deleteLog, getLogsByDate, type TrainLog } from '../db';
+import { getLogsByDate, type TrainLog } from '../db';
+import { HaltService } from '../services/haltService';
 import { db } from '../lib/firebase';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
@@ -272,7 +273,10 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
     }, [user, lobbyId, partnerLogs, fetchPartnerLogs]);
 
 
-    const addEntry = useCallback(async () => {
+    // Context for Service
+    const context = { userId: user?.uid, lobbyId };
+
+    const addEntry = useCallback(async (data: { category: string; subcategory?: string }) => {
         // ... (Same as before)
         const alreadyRunning = logs.find(l => l.status === 'RUNNING');
         if (alreadyRunning) {
@@ -281,26 +285,27 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
         }
 
         try {
-            const newLog: TrainLog = {
-                id: Date.now(),
+            const newLogData = {
                 date: format(currentDate, 'yyyy-MM-dd'),
                 arrival_timestamp: Date.now(),
-                status: 'RUNNING',
-                created_at: Date.now(),
-                siteId: viewingSiteId ?? undefined // <--- Add siteId
+                status: 'RUNNING' as const, // Explicit cast
+                siteId: viewingSiteId ?? undefined,
+                category: data.category,
+                subcategory: data.subcategory
             };
 
-            if (lobbyId) {
-                await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(newLog.id)), newLog);
-            } else if (user) {
-                const logRef = doc(db, 'users', user.uid, 'logs', String(newLog.id));
-                await setDoc(logRef, newLog);
-            } else {
-                await addLog(newLog);
-                const dateStr = format(currentDate, 'yyyy-MM-dd');
-                const data = await getLogsByDate(dateStr);
-                setLogs(data.sort((a, b) => b.arrival_timestamp - a.arrival_timestamp));
+            const createdLog = await HaltService.createHalt(newLogData, context);
+
+            // If local (Guest), manual state update is needed as we don't have a listener?
+            // Actually, listener might catch it if it listens to IndexedDB?
+            // Guest mode listener in useEffect currently loads once. It doesn't listen.
+            // So for Guest, we must update state.
+            if (!user && !lobbyId) {
+                // Re-fetch or append?
+                setLogs(prev => [createdLog, ...prev]);
             }
+
+            // For Cloud/Lobby, listener handles it.
         } catch (error) {
             console.error("FAILED ADD ENTRY:", error);
             showAlert({ title: 'Error', message: 'Error starting timer: ' + (error as any).message, type: 'danger' });
@@ -308,14 +313,9 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
     }, [logs, lobbyId, user, currentDate, showAlert, viewingSiteId]);
 
     const updateEntry = useCallback(async (updatedLog: TrainLog) => {
-        // ... (Same as before)
         try {
-            if (lobbyId) {
-                await setDoc(doc(db, 'lobbies', lobbyId, 'logs', String(updatedLog.id)), updatedLog);
-            } else if (user) {
-                await setDoc(doc(db, 'users', user.uid, 'logs', String(updatedLog.id)), updatedLog);
-            } else {
-                await updateLog(updatedLog);
+            await HaltService.updateHalt(updatedLog, context);
+            if (!user && !lobbyId) {
                 setLogs(prev => prev.map(l => l.id === updatedLog.id ? updatedLog : l));
             }
         } catch (e: any) {
@@ -324,49 +324,32 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
     }, [lobbyId, user, showAlert]);
 
     const completeEntry = useCallback(async (log: TrainLog) => {
-        const departure = Date.now();
-        const duration = Math.floor((departure - log.arrival_timestamp) / 1000);
-        const completedLog: TrainLog = {
-            ...log,
-            departure_timestamp: departure,
-            halt_duration_seconds: duration,
-            status: 'COMPLETED'
-        };
-        await updateEntry(completedLog);
-    }, [updateEntry]);
+        try {
+            const completed = await HaltService.stopHalt(log, context);
+            if (!user && !lobbyId) {
+                setLogs(prev => prev.map(l => l.id === log.id ? completed : l));
+            }
+        } catch (e: any) {
+            console.error("Complete failed", e);
+            showAlert({ title: 'Error', message: 'Failed to stop timer.', type: 'danger' });
+        }
+    }, [updateEntry, user, lobbyId]); // updateEntry dependency not strictly needed if we use Service directly
 
     const removeEntry = useCallback(async (id: number | string) => {
-        if (lobbyId) {
-            await deleteDoc(doc(db, 'lobbies', lobbyId, 'logs', String(id)));
-        } else if (user) {
-            await deleteDoc(doc(db, 'users', user.uid, 'logs', String(id)));
-        } else {
-            await deleteLog(Number(id));
-            setLogs(prev => prev.filter(l => l.id !== id));
+        try {
+            await HaltService.deleteHalt(id, context);
+            if (!user && !lobbyId) {
+                setLogs(prev => prev.filter(l => l.id !== id));
+            }
+        } catch (e) {
+            console.error("Delete failed", e);
         }
     }, [lobbyId, user]);
 
     const bulkDeleteEntries = useCallback(async (ids: (number | string)[]) => {
-        if (ids.length === 0) return;
-
         try {
-            if (lobbyId) {
-                const batch = writeBatch(db);
-                ids.forEach(id => {
-                    const ref = doc(db, 'lobbies', lobbyId, 'logs', String(id));
-                    batch.delete(ref);
-                });
-                await batch.commit();
-            } else if (user) {
-                const batch = writeBatch(db);
-                ids.forEach(id => {
-                    const ref = doc(db, 'users', user.uid, 'logs', String(id));
-                    batch.delete(ref);
-                });
-                await batch.commit();
-            } else {
-                // Local
-                await Promise.all(ids.map(id => deleteLog(Number(id))));
+            await HaltService.bulkDeleteHalts(ids, context);
+            if (!user && !lobbyId) {
                 setLogs(prev => prev.filter(l => !ids.includes(l.id!)));
             }
             showAlert({ title: 'Deleted', message: `${ids.length} logs deleted.`, type: 'success' });
@@ -378,18 +361,22 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
 
     const copyLogToPersonal = useCallback(async (log: TrainLog) => {
         if (!user) return;
-        const newLog: TrainLog = {
-            ...log,
-            id: Date.now(),
-            created_at: Date.now(),
-            status: 'COMPLETED', // Ensure copied logs are completed or keep status? Better to be completed if source was completed.
-            // If source is running, we might want to copy it as running? No, tricky.
-            // Let's assume we copy as is, but generate new ID.
-            // Actually, if it's running, we probably shouldn't copy it yet, or copy as running.
-        };
-
         try {
-            await setDoc(doc(db, 'users', user.uid, 'logs', String(newLog.id)), newLog);
+            // We use createHalt but force it to user context even if we are in lobby?
+            // Actually copyLogToPersonal implies "Copy to MY personal logs".
+            // So context is { userId: user.uid }.
+            const copyContext = { userId: user.uid };
+
+            // Data to copy
+            const { id, ...logData } = log;
+            // Ensure it's completed
+            const dataToCreate = {
+                ...logData,
+                category: logData.category || 'Other', // Handle legacy
+                status: 'COMPLETED' as const
+            };
+
+            await HaltService.createHalt(dataToCreate, copyContext);
             showAlert({ title: 'Success', message: 'Log copied to your personal logs!', type: 'success' });
         } catch (e) {
             console.error("Copy failed", e);
@@ -398,28 +385,24 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
     }, [user, showAlert]);
 
     const clearAllLogs = useCallback(async () => {
+        // Service doesn't have clearAll yet, but we can iterate or add it?
+        // For now let's keep it here or add to service.
+        // Let's implement it using bulkDelete logic or existing.
         if (!user) return;
-
-        // This is a destructive action, caller should confirm first usually, but we implement logic here.
         try {
+            // ... (Existing logic fetch then batch delete)
+            // Ideally move to service, but for now reuse existing code or bulkDelete
+            // Fetch strict, then delete.
             const logsRef = collection(db, 'users', user.uid, 'logs');
             const snapshot = await import('firebase/firestore').then(mod => mod.getDocs(logsRef));
-
             if (snapshot.empty) {
                 showAlert({ title: 'Empty', message: 'No logs to clear.', type: 'info' });
                 return;
             }
-
-            const batch = writeBatch(db);
-            let count = 0;
-            snapshot.docs.forEach(doc => {
-                batch.delete(doc.ref);
-                count++;
-            });
-
-            await batch.commit();
-            showAlert({ title: 'Cleared', message: `Successfully deleted ${count} logs.`, type: 'success' });
-            setLogs([]); // Clear local state
+            const ids = snapshot.docs.map(d => d.id);
+            await HaltService.bulkDeleteHalts(ids, { userId: user.uid });
+            showAlert({ title: 'Cleared', message: `Successfully deleted ${ids.length} logs.`, type: 'success' });
+            setLogs([]);
         } catch (error: any) {
             console.error("Clear all failed:", error);
             showAlert({ title: 'Error', message: 'Failed to clear logs: ' + error.message, type: 'danger' });
@@ -437,10 +420,10 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
         removeEntry,
         bulkDeleteEntries,
         copyLogToPersonal,
-        clearAllLogs, // <--- Exported
+        clearAllLogs,
         activeLog,
         totalHaltTime,
         setDate: setCurrentDate
     };
-
 };
+

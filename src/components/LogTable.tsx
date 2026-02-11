@@ -181,6 +181,7 @@ export const LogTable = React.memo<LogTableProps>(({ logs, onDelete, onEdit, rea
                                         )}
                                     </th>
                                 )}
+                                <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
                                 <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Start</th>
                                 <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider">End</th>
                                 <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Halt</th>
@@ -210,6 +211,18 @@ export const LogTable = React.memo<LogTableProps>(({ logs, onDelete, onEdit, rea
                                                 )}
                                             </td>
                                         )}
+                                        <td className="p-3">
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md inline-block whitespace-nowrap">
+                                                    {log.category || 'Other'}
+                                                </span>
+                                                {log.subcategory && (
+                                                    <span className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[80px]">
+                                                        {log.subcategory}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="p-3 font-medium text-gray-900">
                                             {format(log.arrival_timestamp, 'HH:mm')}
                                         </td>

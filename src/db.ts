@@ -9,7 +9,19 @@ interface TrainLog {
   status: 'RUNNING' | 'COMPLETED';
   created_at: number;
   siteId?: string; // New field for multi-site support
+  category: string;
+  subcategory?: string;
 }
+
+export const HALT_CATEGORIES = [
+  "Train",
+  "Weather",
+  "Equipment Failure",
+  "Material Delay",
+  "Safety Hold",
+  "Inspection",
+  "Other"
+] as const;
 
 interface ConstLoggerDB extends DBSchema {
   logs: {
