@@ -97,7 +97,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
         }
     };
 
-    const handleLink = async (provider: 'google' | 'microsoft') => {
+    const handleLink = async (provider: 'google') => {
         if (!linkIdentity) return;
         setLinking(true);
         try {
@@ -243,33 +243,6 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                                         </button>
                                     )}
                                 </div>
-
-                                {/* Microsoft Account */}
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white rounded-lg shadow-sm">
-                                            <svg className="w-5 h-5" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M0 0H10.5556V10.5556H0V0Z" fill="#F25022" />
-                                                <path d="M12.4444 0H23V10.5556H12.4444V0Z" fill="#7FBA00" />
-                                                <path d="M0 12.4444H10.5556V23H0V12.4444Z" fill="#00A4EF" />
-                                                <path d="M12.4444 12.4444H23V23H12.4444V12.4444Z" fill="#FFB900" />
-                                            </svg>
-                                        </div>
-                                        <span className="font-medium text-gray-700">Microsoft</span>
-                                    </div>
-                                    {user?.providerData.some(p => p.providerId === 'microsoft.com') ? (
-                                        <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">Connected</span>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleLink('microsoft')}
-                                            disabled={linking}
-                                            className="px-3 py-1 text-sm bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 font-medium"
-                                        >
-                                            Connect
-                                        </button>
-                                    )}
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -277,10 +250,6 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
 
                 <div className="p-4 bg-gray-50 border-t flex-shrink-0">
                     <button
-                        // Form submission outside form element needs logic modification or simple form id association
-                        // Actually, easiest is to make this button type button and call handleSave
-                        // OR put it back inside form. But form is in scroll area.
-                        // Better: Use form="profile-form" attribute
                         form="profile-form"
                         type="submit"
                         disabled={saving || loading}

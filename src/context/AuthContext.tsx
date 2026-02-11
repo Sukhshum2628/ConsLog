@@ -20,13 +20,12 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
-    signInWithMicrosoft: () => Promise<void>;
     signInWithEmail: (email: string, pass: string) => Promise<void>;
     signUpWithEmail: (email: string, pass: string) => Promise<void>;
     logout: () => Promise<void>;
     sendVerification: () => Promise<void>;
     setUserPassword: (pass: string) => Promise<void>;
-    linkIdentity: (provider: 'google' | 'microsoft') => Promise<void>;
+    linkIdentity: (provider: 'google') => Promise<void>;
     unlinkIdentity: (providerId: string) => Promise<void>;
 }
 
@@ -63,33 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         } catch (error: any) {
             console.error("Google Sign-In Failed:", error);
-            throw error;
-        }
-    };
-
-    const signInWithMicrosoft = async () => {
-        try {
-            if (Capacitor.getPlatform() === 'web') {
-                const { microsoftProvider } = await import('../lib/firebase');
-                await signInWithPopup(auth, microsoftProvider);
-            } else {
-                // Native Microsoft Auth
-                const result = await FirebaseAuthentication.signInWithMicrosoft();
-                // The plugin returns a credential with idToken/accessToken
-                if (result.credential) {
-                    const { OAuthProvider } = await import('firebase/auth');
-                    // We need to construct a Firebase Credential from the ID Token.
-
-                    const provider = new OAuthProvider('microsoft.com');
-                    const credential = provider.credential({
-                        idToken: result.credential.idToken,
-                        accessToken: result.credential.accessToken
-                    });
-                    await signInWithCredential(auth, credential);
-                }
-            }
-        } catch (error: any) {
-            console.error("Microsoft Sign-In Failed:", error);
             throw error;
         }
     };
@@ -197,7 +169,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user,
             loading,
             signInWithGoogle,
-            signInWithMicrosoft,
             signInWithEmail,
             signUpWithEmail,
             logout,
