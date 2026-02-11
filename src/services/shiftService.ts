@@ -1,6 +1,6 @@
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { Shift, TrainLog } from '../db';
+import type { Shift } from '../db';
 
 const SHIFTS_COLLECTION = 'shifts';
 
