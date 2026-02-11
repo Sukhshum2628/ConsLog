@@ -409,6 +409,56 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
         }
     }, [user, showAlert]);
 
+    const fetchLogsByRange = useCallback(async (startDate: Date, endDate: Date, siteId?: string) => {
+        if (!user) {
+            // Local Guest Mode - Fetch from IDB
+            try {
+                const all = await import('../db').then(mod => mod.getAllLogs());
+                return all.filter(l => {
+                    const d = new Date(l.arrival_timestamp);
+                    return d >= startDate && d <= endDate;
+                });
+            } catch (e) {
+                console.error("Local fetch failed", e);
+                return [];
+            }
+        }
+
+        try {
+            // Firestore Query
+            const startStr = format(startDate, 'yyyy-MM-dd');
+            const endStr = format(endDate, 'yyyy-MM-dd');
+
+            // We use date string string comparison for broad range, then refine?
+            // Actually, querying by 'date' string (yyyy-MM-dd) works for range if we want WHOLE days.
+            // ReportModal passes startOfDay and endOfDay dates.
+            // So we can use 'arrival_timestamp' for precise filtering.
+
+            const q = query(
+                collection(db, 'users', user.uid, 'logs'),
+                where('arrival_timestamp', '>=', startDate.getTime()),
+                where('arrival_timestamp', '<=', endDate.getTime())
+            );
+
+            const snapshot = await import('firebase/firestore').then(mod => mod.getDocs(q));
+            const fetchedLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainLog));
+
+            // Filter by Site if provided
+            if (siteId) {
+                return fetchedLogs.filter(l => {
+                    if (siteId === 'default-site') return !l.siteId || l.siteId === 'default-site';
+                    return l.siteId === siteId;
+                });
+            }
+
+            return fetchedLogs;
+        } catch (e) {
+            console.error("Range fetch failed", e);
+            showAlert({ title: 'Error', message: 'Failed to fetch report data.', type: 'danger' });
+            return [];
+        }
+    }, [user, showAlert]);
+
     return {
         logs,
         partnerLogs,
@@ -423,7 +473,8 @@ export const useTrainLog = (lobbyId: string | null = null, viewingSiteId: string
         clearAllLogs,
         activeLog,
         totalHaltTime,
-        setDate: setCurrentDate
+        setDate: setCurrentDate,
+        fetchLogsByRange // New
     };
 };
 

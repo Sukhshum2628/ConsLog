@@ -65,7 +65,8 @@ function InnerApp() {
     activeLog,
     totalHaltTime,
     copyLogToPersonal,
-    bulkDeleteEntries
+    bulkDeleteEntries,
+    fetchLogsByRange
   } = useTrainLog(null, selectedSite?.id || null);
 
   // Site Selection with Sync Guard

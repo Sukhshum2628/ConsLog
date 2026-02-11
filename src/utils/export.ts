@@ -15,6 +15,7 @@ export interface ExportProfile {
 
 export interface ExportLog extends TrainLog {
     owner?: string;
+    siteName?: string;
 }
 
 export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
@@ -22,7 +23,7 @@ export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fi
         const doc = new jsPDF();
 
         // 1. Header Section
-        doc.setFillColor(41, 128, 185); // Blue header
+        doc.setFillColor(41, 128, 185);
         doc.rect(0, 0, 210, 40, 'F');
 
         doc.setTextColor(255, 255, 255);
@@ -49,90 +50,94 @@ export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fi
             }
         }
 
-        // 3. Group Logs by Owner
+        // 3. Group Logs by User AND Date
         const groupedLogs: Record<string, ExportLog[]> = {};
         logs.forEach(log => {
+            const dateStr = format(new Date(log.arrival_timestamp), 'yyyy-MM-dd');
             const owner = log.owner || 'My Logs';
-            if (!groupedLogs[owner]) groupedLogs[owner] = [];
-            groupedLogs[owner].push(log);
+            const groupKey = `${owner} (${dateStr})`;
+            if (!groupedLogs[groupKey]) groupedLogs[groupKey] = [];
+            groupedLogs[groupKey].push(log);
         });
 
         let currentY = 50;
 
         // 4. Iterate Groups
-        Object.keys(groupedLogs).forEach(owner => {
-            const ownerLogs = groupedLogs[owner];
+        Object.keys(groupedLogs).sort().forEach(groupKey => {
+            const groupLogs = groupedLogs[groupKey];
 
-            // Calculate User Total
-            const userTotalSeconds = ownerLogs.reduce((sum, l) => sum + (l.halt_duration_seconds || 0), 0);
-            const userTotalFormatted = new Date(userTotalSeconds * 1000).toISOString().substr(11, 8);
+            // Calculate Group Total
+            const groupTotalSeconds = groupLogs.reduce((sum, l) => sum + (l.halt_duration_seconds || 0), 0);
+            const groupTotalFormatted = new Date(groupTotalSeconds * 1000).toISOString().substr(11, 8);
 
             // Group Header
-            doc.setFontSize(14);
-            doc.setTextColor(41, 128, 185);
-            doc.text(`${owner} (Total Halt: ${userTotalFormatted})`, 14, currentY);
-            currentY += 5;
+            if (currentY > 270) {
+                doc.addPage();
+                currentY = 20;
+            }
 
-            const tableData = ownerLogs.map(log => [
+            doc.setFontSize(12);
+            doc.setTextColor(41, 128, 185);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${groupKey} - Total: ${groupTotalFormatted}`, 14, currentY);
+            currentY += 6;
+
+            const tableData = groupLogs.map(log => [
                 format(log.arrival_timestamp, 'HH:mm'),
-                log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm') : '--',
-                log.halt_duration_seconds ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8) : 'RUNNING'
+                log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm') : '--', // Departure
+                log.halt_duration_seconds ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8) : 'RUNNING', // Duration
+                `${log.category}${log.subcategory ? ` - ${log.subcategory}` : ''}`, // Cause
+                log.siteName || log.siteId || '-' // Site
             ]);
 
             autoTable(doc, {
-                head: [['Arrival', 'Departure', 'Halt Duration']],
+                head: [['Start', 'End', 'Duration', 'Cause', 'Site']],
                 body: tableData,
                 startY: currentY,
                 theme: 'grid',
                 headStyles: { fillColor: [41, 128, 185], textColor: 255 },
                 alternateRowStyles: { fillColor: [245, 245, 245] },
-                styles: { fontSize: 10, cellPadding: 3 },
+                styles: { fontSize: 9, cellPadding: 2 },
+                columnStyles: {
+                    0: { cellWidth: 20 },
+                    1: { cellWidth: 20 },
+                    2: { cellWidth: 25 },
+                    3: { cellWidth: 'auto' }, // Cause gets methods
+                    4: { cellWidth: 30 }
+                },
                 margin: { bottom: 10 }
             });
 
-            // Update Y for next table (autoTable exposes finalY)
-            currentY = (doc as any).lastAutoTable.finalY + 15;
-
-            // Page break check if needed (autoTable handles it mostly, but title logic might overlap)
-            if (currentY > 270) {
-                doc.addPage();
-                currentY = 20;
-            }
+            currentY = (doc as any).lastAutoTable.finalY + 10;
         });
 
-        // Helper to calculate Grand Total (Max Halt per Unique Event)
-        // Unique Event = Same Site + Same Start Time
+        // 5. Grand Total (Effective) Logic
         const calculateEffectiveGrandTotal = (allLogs: ExportLog[]) => {
             const uniqueEventGroups: Record<string, number> = {};
-
             allLogs.forEach(log => {
                 const siteId = log.siteId || 'legacy_no_site';
-                // We use arrival_timestamp (Start Time) as the differentiator for distinct events
                 const startTime = log.arrival_timestamp;
-
-                // Key = Site + StartTime
                 const key = `${siteId}_${startTime}`;
-
                 const halt = log.halt_duration_seconds || 0;
-
-                // We want MAX halt for this specific Event (across multiple users who might have it)
                 if (!uniqueEventGroups[key] || halt > uniqueEventGroups[key]) {
                     uniqueEventGroups[key] = halt;
                 }
             });
-
-            // Sum up the MAX halts from each Unique Event
             return Object.values(uniqueEventGroups).reduce((sum, val) => sum + val, 0);
         };
 
-        // 5. Grand Total Footer
         const grandTotalSeconds = calculateEffectiveGrandTotal(logs);
         const grandTotalFormatted = new Date(grandTotalSeconds * 1000).toISOString().substr(11, 8);
+
+        if (currentY > 270) {
+            doc.addPage();
+            currentY = 20;
+        }
 
         doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'bold');
-        doc.text(`GRAND TOTAL HALT TIME (Effective): ${grandTotalFormatted}`, 14, currentY);
+        doc.text(`GRAND TOTAL (Effective): ${grandTotalFormatted}`, 14, currentY);
 
         const pdfOutput = doc.output('datauristring');
         const base64Data = pdfOutput.split(',')[1];
@@ -141,7 +146,7 @@ export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fi
             const savedFile = await Filesystem.writeFile({
                 path: `${fileName}.pdf`,
                 data: base64Data,
-                directory: Directory.Cache, // Use Cache to avoid permission issues
+                directory: Directory.Cache,
             });
 
             await Share.share({
@@ -162,102 +167,50 @@ export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fi
 
 export const exportToExcel = async (logs: ExportLog[], fileName: string = `TimeLog_${format(new Date(), 'yyyy-MM-dd')}`) => {
     try {
-        // 1. Prepare Data
-        // 1. Group Logs by Owner
-        const groupedLogs: Record<string, ExportLog[]> = {};
+        const data: any[] = logs.map(log => ({
+            'User': log.owner || 'Me',
+            'Date': format(log.arrival_timestamp, 'yyyy-MM-dd'),
+            'Site': log.siteName || log.siteId || '-',
+            'Category': log.category,
+            'Subcategory': log.subcategory || '',
+            'Start Time': format(log.arrival_timestamp, 'HH:mm:ss'),
+            'End Time': log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm:ss') : '--',
+            'Halt Duration': log.halt_duration_seconds
+                ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8)
+                : 'RUNNING',
+            'Status': log.status
+        }));
+
+        // Append Grand Total Row?? Excel usually lets users sum. 
+        // But we add a summary row for convenience.
+
+        // Effective Grand Total
+        const uniqueEventGroups: Record<string, number> = {};
         logs.forEach(log => {
-            const owner = log.owner || 'My Logs';
-            if (!groupedLogs[owner]) groupedLogs[owner] = [];
-            groupedLogs[owner].push(log);
+            const key = `${log.siteId || 'legacy'}_${log.arrival_timestamp}`;
+            const halt = log.halt_duration_seconds || 0;
+            if (!uniqueEventGroups[key] || halt > uniqueEventGroups[key]) uniqueEventGroups[key] = halt;
         });
-
-        const data: any[] = [];
-
-        // 2. Iterate Groups
-        Object.keys(groupedLogs).forEach(owner => {
-            const ownerLogs = groupedLogs[owner];
-
-            // Calculate User Total
-            const userTotalSeconds = ownerLogs.reduce((sum, l) => sum + (l.halt_duration_seconds || 0), 0);
-            const userTotalFormatted = new Date(userTotalSeconds * 1000).toISOString().substr(11, 8);
-
-            // Add Group Header Row? Or just fill "User" column? 
-            // Let's fill "User" column for every row for sorting, 
-            // BUT ALSO add a summary row at the bottom.
-
-            ownerLogs.forEach(log => {
-                data.push({
-                    'User': owner,
-                    'Start Time': format(log.arrival_timestamp, 'HH:mm:ss'),
-                    'End Time': log.departure_timestamp ? format(log.departure_timestamp, 'HH:mm:ss') : '--',
-                    'Halt Duration': log.halt_duration_seconds
-                        ? new Date(log.halt_duration_seconds * 1000).toISOString().substr(11, 8)
-                        : 'RUNNING',
-                    'Date': format(log.arrival_timestamp, 'yyyy-MM-dd'),
-                    'Status': log.status
-                });
-            });
-
-            // Add Subtotal Row for this User
-            data.push({
-                'User': `${owner} TOTAL`,
-                'Start Time': '',
-                'End Time': '',
-                'Halt Duration': userTotalFormatted,
-                'Date': '',
-                'Status': ''
-            });
-
-            // Add Spacer Row
-            data.push({});
-        });
-
-        // Helper to calculate Grand Total (Max Halt per Unique Event)
-        const calculateEffectiveGrandTotal = (allLogs: ExportLog[]) => {
-            const uniqueEventGroups: Record<string, number> = {};
-
-            allLogs.forEach(log => {
-                const siteId = log.siteId || 'legacy_no_site';
-                const startTime = log.arrival_timestamp;
-                const key = `${siteId}_${startTime}`;
-
-                const halt = log.halt_duration_seconds || 0;
-
-                if (!uniqueEventGroups[key] || halt > uniqueEventGroups[key]) {
-                    uniqueEventGroups[key] = halt;
-                }
-            });
-
-            return Object.values(uniqueEventGroups).reduce((sum, val) => sum + val, 0);
-        };
-
-        // 3. Grand Total
-        const grandTotalSeconds = calculateEffectiveGrandTotal(logs);
+        const grandTotalSeconds = Object.values(uniqueEventGroups).reduce((sum, val) => sum + val, 0);
         const grandTotalFormatted = new Date(grandTotalSeconds * 1000).toISOString().substr(11, 8);
 
+        data.push({}); // Spacer
         data.push({
             'User': 'GRAND TOTAL (Effective)',
-            'Start Time': '',
-            'End Time': '',
-            'Halt Duration': grandTotalFormatted,
-            'Date': '',
-            'Status': ''
+            'Halt Duration': grandTotalFormatted
         });
 
-        // 2. Create Workbook
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Logs");
 
-        // 3. Write Buffer
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
 
-        // 4. Save/Share
         if (Capacitor.isNativePlatform()) {
             const savedFile = await Filesystem.writeFile({
                 path: `${fileName}.xlsx`,
                 data: wbout,
-                directory: Directory.Cache, // Use Cache to avoid permissions
+                directory: Directory.Cache,
             });
 
             await Share.share({
