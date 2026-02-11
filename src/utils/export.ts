@@ -100,35 +100,29 @@ export const exportToPDF = async (logs: ExportLog[], profile?: ExportProfile, fi
             }
         });
 
-        // Helper to calculate Grand Total effectively (Max Halt per Site per Date)
+        // Helper to calculate Grand Total (Max Halt per Unique Event)
+        // Unique Event = Same Site + Same Start Time
         const calculateEffectiveGrandTotal = (allLogs: ExportLog[]) => {
-            const siteDateGroups: Record<string, number> = {};
+            const uniqueEventGroups: Record<string, number> = {};
 
             allLogs.forEach(log => {
-                // If siteId is missing (legacy), treat as unique per user to be safe, 
-                // OR group by Owner? The user said "working on SAME site".
-                // If we don't have siteId, we can't group by site efficiently. 
-                // Assuming newer logs have siteId. For older ones, we might still duplicate, 
-                // but let's try to group by 'running site' if avail.
-
-                // Key = Date + SiteID. 
-                // If SiteID is missing, fallback to "UnknownSite". 
-                // BUT, if two users are on "UnknownSite", should we merge? 
-                // Let's assume siteId is present for synced logs.
                 const siteId = log.siteId || 'legacy_no_site';
-                const dateKey = format(log.arrival_timestamp, 'yyyy-MM-dd');
-                const key = `${dateKey}_${siteId}`;
+                // We use arrival_timestamp (Start Time) as the differentiator for distinct events
+                const startTime = log.arrival_timestamp;
+
+                // Key = Site + StartTime
+                const key = `${siteId}_${startTime}`;
 
                 const halt = log.halt_duration_seconds || 0;
 
-                // We want MAX halt for this Site+Date combo across ALL users
-                if (!siteDateGroups[key] || halt > siteDateGroups[key]) {
-                    siteDateGroups[key] = halt;
+                // We want MAX halt for this specific Event (across multiple users who might have it)
+                if (!uniqueEventGroups[key] || halt > uniqueEventGroups[key]) {
+                    uniqueEventGroups[key] = halt;
                 }
             });
 
-            // Sum up the MAX halts from each Site+Date bucket
-            return Object.values(siteDateGroups).reduce((sum, val) => sum + val, 0);
+            // Sum up the MAX halts from each Unique Event
+            return Object.values(uniqueEventGroups).reduce((sum, val) => sum + val, 0);
         };
 
         // 5. Grand Total Footer
@@ -218,23 +212,23 @@ export const exportToExcel = async (logs: ExportLog[], fileName: string = `TimeL
             data.push({});
         });
 
-        // Helper to calculate Grand Total effectively (Max Halt per Site per Date)
+        // Helper to calculate Grand Total (Max Halt per Unique Event)
         const calculateEffectiveGrandTotal = (allLogs: ExportLog[]) => {
-            const siteDateGroups: Record<string, number> = {};
+            const uniqueEventGroups: Record<string, number> = {};
 
             allLogs.forEach(log => {
                 const siteId = log.siteId || 'legacy_no_site';
-                const dateKey = format(log.arrival_timestamp, 'yyyy-MM-dd');
-                const key = `${dateKey}_${siteId}`;
+                const startTime = log.arrival_timestamp;
+                const key = `${siteId}_${startTime}`;
 
                 const halt = log.halt_duration_seconds || 0;
 
-                if (!siteDateGroups[key] || halt > siteDateGroups[key]) {
-                    siteDateGroups[key] = halt;
+                if (!uniqueEventGroups[key] || halt > uniqueEventGroups[key]) {
+                    uniqueEventGroups[key] = halt;
                 }
             });
 
-            return Object.values(siteDateGroups).reduce((sum, val) => sum + val, 0);
+            return Object.values(uniqueEventGroups).reduce((sum, val) => sum + val, 0);
         };
 
         // 3. Grand Total
