@@ -275,42 +275,43 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <div key={conn.uid} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all group">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-green-100 text-green-700 rounded-full flex items-center justify-center font-bold text-lg ring-4 ring-green-50">
-                                            {conn.username?.[0]?.toUpperCase() || 'U'}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-gray-900">{conn.displayName || conn.username}</p>
-                                            <div className="flex items-center gap-2">
-                                                <p className="text-xs text-green-600 flex items-center gap-1 font-medium">
-                                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                                                    Synced
-                                                </p>
-                                                <span className="text-gray-300 text-xs">|</span>
-                                                <p className="text-xs text-gray-500 font-medium">
-                                                    {conn.syncedSiteName || 'All Sites'}
-                                                </p>
+                                {connections.map(conn => (
+                                    <div key={conn.uid} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-green-100 text-green-700 rounded-full flex items-center justify-center font-bold text-lg ring-4 ring-green-50">
+                                                {conn.username?.[0]?.toUpperCase() || 'U'}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-900">{conn.displayName || conn.username}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs text-green-600 flex items-center gap-1 font-medium">
+                                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                                        Synced
+                                                    </p>
+                                                    <span className="text-gray-300 text-xs">|</span>
+                                                    <p className="text-xs text-gray-500 font-medium">
+                                                        {conn.syncedSiteName || 'All Sites'}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => setEditingConnection(conn)}
+                                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                                title="Change Site Scope"
+                                            >
+                                                <Settings size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => disconnect(conn.uid)}
+                                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                                title="Disconnect"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => setEditingConnection(conn)}
-                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                                            title="Change Site Scope"
-                                        >
-                                            <Settings size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => disconnect(conn.uid)}
-                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                                            title="Disconnect"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
-                                </div>
                                 ))}
                             </div>
                         )}
