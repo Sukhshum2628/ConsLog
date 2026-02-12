@@ -1,0 +1,108 @@
+[33m07df15e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m chore: explicitly track android/ and ios/ folders in gitignore
+[33mb1b7c36[m fix(native): mandatory edge-to-edge disable via WindowCompat and strict AppTheme
+[33m73026fc[m refactor(ui): structural layout update - absolute sidebar, static stop button, flex-col root
+[33m1c14c57[m fix(android): force disable edge-to-edge by clearing flags in onStart/onResume
+[33med81744[m fix(android): add missing material components dependency to support native theme
+[33mf0cf66a[m ci: add explicit gradlew clean step to ensure native resources are updated
+[33ma0b1f7d[m chore(native): disable edge-to-edge completely - revert to standard native layout with opaque black bars
+[33m55c4ee2[m fix(ui): remove sticky positioning to prevent status bar overlap - headers/footers now stay within black spacer boundaries
+[33m64378f0[m fix(layout): add robust black spacer divs to guarantee system bar separation
+[33m9c0260a[m feat: enforce black system bars (status/nav) and force google account picker
+[33mc003aba[m feat: lock font scaling to 1.0 using @capacitor/text-zoom and CSS overrides
+[33m85bd49d[m fix(android): force non-edge-to-edge layout via styles and WindowCompat
+[33me66188b[m Build: Fix CI failure by adding @rollup/rollup-linux-x64-gnu as optional dependency
+[33m7a81be7[m UI: Fix Android layout issues (Status Bar overlay, SmartButton responsiveness) and add @capacitor/status-bar
+[33m232cc0b[m UI: Fix icon contrast in Sidebar/Sync/Lobby and implement safe area support for modern mobile devices
+[33m6dea945[m Simplify shift management: Implement automatic Day/Night calculation and remove manual shift UI/services
+[33ma0a3b97[m feat: Refactor Shift Management into Site flow and update report grouping
+[33m39f36e1[m fix: resolve unused import build errors in shiftService
+[33m75b7969[m feat: Implement Shift Logging and UI Animations
+[33me473ba1[m fix: ensure partner historical data is included in reports
+[33m819c165[m feat: add optimized UI animations to modals and views
+[33me6a2b88[m fix: resolve build errors due to unused variables and type mismatch
+[33ma6da841[m feat: enhance reports with history fetching, read-only viewer, and detailed exports
+[33m0a9459f[m chore: remove OTA update functionality
+[33m170bdd1[m fix: explicit production channel for OTA updates
+[33m5f976f3[m fix: build errors (type imports and unused vars)
+[33mea74c03[m feat: add project-level reports with date and user filters
+[33mfa46dff[m fix: correct bundle id access in OTA update listener
+[33m22510de[m fix: use correct bundle property for OTA update
+[33mc05af07[m chore: bump version to 1.0.0 and add OTA listeners
+[33mfcd7bb1[m fix(reports): refine grand total logic to respect distinct start times
+[33m2b51aff[m fix(ci): remove debug keystore generation, use repo keystore for release build
+[33m5022fd5[m feat: setup permanent keystore and OTA updates via capgo
+[33m525c3e1[m fix: sanitize firestore data to remove undefined values
+[33m3573230[m feat: halt categorization and dashboard analytics
+[33m4611b57[m refactor: Remove Microsoft Login & Account Linking (Google Only)
+[33m8c19720[m feat: Fix Mobile Login & Add Account Linking (Microsoft/Google)
+[33m0b5ca59[m fix: Correct syntax error in capacitor.config.ts
+[33mc76b284[m feat: Implement Native Microsoft Login for Mobile
+[33me793857[m feat: Add First-Time Login Profile Prompt
+[33mb6e3cc9[m fix: Resolve Duplicate Halt Time in Reports
+[33m4c806bb[m feat: Add Microsoft/Outlook Authentication
+[33m8416a6c[m fix: Resolve Manual Sync ignoring scope and add debug logs
+[33m3b4709b[m fix: Resolve Scoped Sync Ghost Data issue
+[33m512c863[m feat: Implement Scoped Sync & Site Switching Guard
+[33me5e42a8[m feat: enhance site management, log selection mode, and history fix
+[33mdbce6c7[m feat: Add Multi-Site Support (Sidebar, Scoped Logs, History)
+[33m02799b5[m feat: Enable seconds editing in Log Edit Modal
+[33mc24fe1e[m feat: Add Bulk Delete feature for log entries
+[33md358621[m fix: Memoize sync actions and dedup notifications to prevent glitches
+[33m85a16a4[m feat: Add sync notifications and refactor sync logic
+[33m07846de[m fix: Ghost logs issue and memory leak in sync system
+[33m3d7a344[m feat: Optimized app with ErrorBoundary, React.memo, and improved Network Status handling
+[33m9bd111f[m Fix: Add missing X import to LobbyManager
+[33m05a1eba[m UI: Complete Premium UI Overhaul & Fix Excel Export
+[33m8105327[m UI: Apply Premium Design to Edit/Settings Modals
+[33md97fc4b[m Fix: useTrainLog syntax & Enhance UI/Animations
+[33m2c49ee2[m Feat: Sync Guest Logs to Cloud & Fix Export
+[33m8767a16[m Fix: History Fetch and Export Layouts
+[33m162c4a5[m Fix: Recalculate Halt Duration on Edit
+[33mdc69155[m UI: Rename Arrival/Departure to Start/End
+[33m3292e5d[m Fix: Android Export Permission (Use Cache)
+[33maee0ac4[m Update: Onboarding text
+[33m88ec112[m Fix: Export build error & Rebranding
+[33m02a3aff[m Feat: Add Total Halt Time & Team Export Option
+[33m6f2614c[m Fix: Update HistoryModal exportToPDF signature
+[33m5dc8054[m Fix: App.tsx syntax corruption
+[33m64acdd9[m Fix: Export PDF crash, Add Copy Log feature
+[33m3b3ca89[m Fix: Build errors by fixing interval loop type safety
+[33meb826a0[m Fix: Build errors by adding strict string checks for uid
+[33m315739e[m Fix: Build errors in useTrainLog (types)
+[33m1ca718e[m Fix: Build errors in LogTable and useTrainLog (types)
+[33md22d521[m Fix: Build errors (types). Feat: Add 'Add to Personal Logs' for partner entries.
+[33md6e24f1[m Feat: Implement Separate Partner Log Panels with Manual/Auto Sync
+[33m7fee003[m Fix: Remove unused orderBy import
+[33mee4c9ce[m Fix: Remove orderBy to bypass Firestore Index requirement and fix invisible logs
+[33mff48844[m Fix: Block multiple running timers and prevent logout while timer active
+[33m9523862[m Fix: Settings Modal navigation and added Privacy View. Added debug logging for Timer.
+[33mdc6720b[m Fix: Resolve all unused var and type errors for build
+[33mfaccbef[m Feat: Add User Profile details to PDF Export
+[33ma9ed086[m Fix: Overwrite SettingsModal/App with clean files to resolve build errors
+[33m1f52ebd[m Refactor: Switch to SyncSystem and remove LobbyManager logic
+[33m8f289c3[m Feat: Add SyncManager and integrate into Settings
+[33ma0c3280[m Feat: Add User Profile System (Settings -> Edit Profile)
+[33mdcc1725[m Fix: Update AuthContext with Email/Password and Verification methods
+[33m7522845[m Feat: Implement Strict Auth Flow (Email Verify + Google Password Set)
+[33m87526f6[m Feat: Implement Cloud Persistence and Auto-Migration for User Logs
+[33mf42fe29[m Fix: Remove unused serverTimestamp import
+[33m15b3829[m Chore: Clean up debug alerts and finalize Lobby Creation
+[33mf983d40[m Fix: Add debugging alerts and timeout to Lobby Creation
+[33m691049a[m Fix: Resolve syntax error in AuthContext
+[33mcf9b514[m Fix: Remove unused import to resolve build error
+[33me734151[m Fix: Disable Firestore offline persistence to debug connection issues
+[33m8e6b5ab[m Fix: Use legacy-peer-deps in CI for Capacitor Google Auth
+[33m2a1b950[m Fix: Add capacitor-google-auth dependency (legacy-peer-deps)
+[33mfab140a[m Feat: Migrate to Native Capacitor Google Auth Plugin
+[33m757c7f9[m Fix: Add intent-filter for Firebase Auth redirects
+[33mee9a55e[m Fix: Permanently enable SHA-1 printing to handle dynamic keystore regeneration
+[33m4ba9549[m Chore: Cleanup build.yml (SHA-1 retrieved)
+[33m4966f38[m Fix: Re-enable SHA-1 printing for Firebase config
+[33mf68bc31[m Fix: Re-add SHA-1 print step for user verification
+[33ma0c0730[m Feat: Add google-services.json and finalize build workflow
+[33m5e7a026[m Fix: Force Gradle to use local debug keystore via gradle.properties
+[33m8c577cd[m Fix: Generate keystore in HOME/.android/ for Gradle detection
+[33m75531ba[m Fix: Generate debug keystore for SHA-1 reporting
+[33mbdded93[m Fix: Remove unused useAuth import
+[33md1236b2[m Fix: Auth Context type mismatch and unused vars
+[33md8

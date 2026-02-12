@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Check, X as XIcon, RefreshCw, Trash2, Users } from 'lucide-react';
+import { X, UserPlus, Check, X as XIcon, RefreshCw, Trash2, Users, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSyncActions, type SyncRequest } from '../hooks/useSyncActions';
+import { useSites } from '../hooks/useSites';
 import {
     collection,
     query,
@@ -20,6 +21,8 @@ interface ConnectedUser {
     uid: string;
     username: string;
     displayName: string;
+    syncedSiteId?: string;
+    syncedSiteName?: string;
 }
 
 interface Site {
@@ -31,6 +34,7 @@ interface Site {
 export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => {
     const { user } = useAuth();
     const { sendRequest, acceptRequest, rejectRequest, disconnect, loading } = useSyncActions();
+    const { sites: allSites } = useSites();
 
     const [targetUsername, setTargetUsername] = useState('');
     const [requests, setRequests] = useState<SyncRequest[]>([]);
@@ -40,6 +44,9 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
     const [configuringRequest, setConfiguringRequest] = useState<SyncRequest | null>(null);
     const [senderSites, setSenderSites] = useState<Site[]>([]);
     const [loadingSites, setLoadingSites] = useState(false);
+
+    // Edit State
+    const [editingConnection, setEditingConnection] = useState<ConnectedUser | null>(null);
 
     useEffect(() => {
         if (!isOpen || !user) return;
@@ -98,6 +105,14 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
         await acceptRequest(configuringRequest, siteId, siteName);
         setConfiguringRequest(null);
         setSenderSites([]);
+    };
+
+    const handleUpdateScope = async (siteId: string, siteName: string) => {
+        if (!editingConnection || !editingConnection.username) return;
+
+        // Use sendRequest to update the scope (it handles existing connections)
+        await sendRequest(editingConnection.username, siteId, siteName);
+        setEditingConnection(null);
     };
 
     if (!isOpen) return null;
@@ -260,33 +275,104 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {connections.map(conn => (
-                                    <div key={conn.uid} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-green-100 text-green-700 rounded-full flex items-center justify-center font-bold text-lg ring-4 ring-green-50">
-                                                {conn.username?.[0]?.toUpperCase() || 'U'}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-gray-900">{conn.displayName || conn.username}</p>
+                                <div key={conn.uid} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-green-100 text-green-700 rounded-full flex items-center justify-center font-bold text-lg ring-4 ring-green-50">
+                                            {conn.username?.[0]?.toUpperCase() || 'U'}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-900">{conn.displayName || conn.username}</p>
+                                            <div className="flex items-center gap-2">
                                                 <p className="text-xs text-green-600 flex items-center gap-1 font-medium">
                                                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
                                                     Synced
                                                 </p>
+                                                <span className="text-gray-300 text-xs">|</span>
+                                                <p className="text-xs text-gray-500 font-medium">
+                                                    {conn.syncedSiteName || 'All Sites'}
+                                                </p>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => setEditingConnection(conn)}
+                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                            title="Change Site Scope"
+                                        >
+                                            <Settings size={18} />
+                                        </button>
                                         <button
                                             onClick={() => disconnect(conn.uid)}
-                                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                                             title="Disconnect"
                                         >
-                                            <Trash2 size={20} />
+                                            <Trash2 size={18} />
                                         </button>
                                     </div>
+                                </div>
                                 ))}
                             </div>
                         )}
                     </div>
                 </div>
+
+                {/* Edit Connection Scope Modal */}
+                {editingConnection && (
+                    <div className="absolute inset-0 bg-white z-30 p-6 animate-in slide-in-from-right duration-300 flex flex-col">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">Manage Connection</h3>
+                                <p className="text-xs text-gray-500">Updating sync for {editingConnection.displayName}</p>
+                            </div>
+                            <button
+                                onClick={() => setEditingConnection(null)}
+                                className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+                            >
+                                <XIcon size={16} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-2">
+                            <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Select Site to Sync</p>
+                            {/* Option to Sync ALL */}
+                            {/* 
+                            <button
+                                onClick={() => handleUpdateScope('all', 'All Sites')}
+                                className={`w-full text-left p-4 rounded-xl border transition-all group ${
+                                    editingConnection.syncedSiteId === 'all' 
+                                    ? 'border-blue-500 bg-blue-50' 
+                                    : 'border-gray-100 hover:border-blue-300 hover:bg-gray-50'
+                                }`}
+                            >
+                                <div className="font-bold text-gray-800">All Sites</div>
+                                <div className="text-xs text-gray-400">Syncs everything</div>
+                            </button>
+                            */}
+
+                            {allSites.map(site => (
+                                <button
+                                    key={site.id}
+                                    onClick={() => handleUpdateScope(site.id, site.name)}
+                                    className={`w-full text-left p-4 rounded-xl border transition-all group ${editingConnection.syncedSiteId === site.id
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-gray-100 hover:border-blue-300 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="font-bold text-gray-800">{site.name}</div>
+                                            <div className="text-xs text-gray-400">{site.location}</div>
+                                        </div>
+                                        {editingConnection.syncedSiteId === site.id && (
+                                            <Check size={16} className="text-blue-500" />
+                                        )}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

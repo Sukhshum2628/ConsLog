@@ -32,7 +32,7 @@ export const useSyncActions = () => {
     const { showAlert, showConfirm } = useModal();
     const [loading, setLoading] = useState(false);
 
-    const sendRequest = async (targetUsername: string) => {
+    const sendRequest = async (targetUsername: string, siteId?: string, siteName?: string) => {
         if (!user) return;
         setLoading(true);
         try {
@@ -50,7 +50,31 @@ export const useSyncActions = () => {
 
             // 2. Check existing connection
             const existingConn = await getDoc(doc(db, 'users', user.uid, 'connections', targetUid));
-            if (existingConn.exists()) throw new Error(`Already synced with ${targetData.displayName || targetUsername}`);
+            if (existingConn.exists()) {
+                // If already connected, maybe we just want to UPDATE the scope?
+                // The user prompt implies "creates a session".
+                // If we are "adding a new user" who is ALREADY a connection, we should just update the scope.
+                if (siteId) {
+                    await setDoc(doc(db, 'users', user.uid, 'connections', targetUid), {
+                        syncedSiteId: siteId,
+                        syncedSiteName: siteName
+                    }, { merge: true });
+
+                    // Also update THEM
+                    await setDoc(doc(db, 'users', targetUid, 'connections', user.uid), {
+                        syncedSiteId: siteId,
+                        syncedSiteName: siteName
+                    }, { merge: true });
+
+                    await showAlert({
+                        title: 'Updated',
+                        message: `Switched sync with ${targetData.displayName} to "${siteName}".`,
+                        type: 'success'
+                    });
+                    return true;
+                }
+                throw new Error(`Already synced with ${targetData.displayName || targetUsername}`);
+            }
 
             // 3. Send Request
             const myProfileSnap = await getDoc(doc(db, 'users', user.uid));
@@ -62,7 +86,10 @@ export const useSyncActions = () => {
                 fromDisplayName: myProfile?.displayName || user.displayName,
                 fromPhoto: user.photoURL || null,
                 status: 'pending',
-                timestamp: serverTimestamp()
+                timestamp: serverTimestamp(),
+                // NEW: Site Metadata
+                siteId: siteId || null,
+                siteName: siteName || null
             });
 
             // SUCCESS POPUP (Sender)
@@ -86,18 +113,21 @@ export const useSyncActions = () => {
         }
     };
 
-    const acceptRequest = async (req: SyncRequest, siteId?: string, siteName?: string) => {
+    const acceptRequest = async (req: SyncRequest & { siteId?: string, siteName?: string }, overrideSiteId?: string, overrideSiteName?: string) => {
         if (!user) return;
         setLoading(true);
         try {
+            const finalSiteId = overrideSiteId || req.siteId || 'all';
+            const finalSiteName = overrideSiteName || req.siteName || 'All Sites';
+
             // 1. Add to MY connections (I am connecting to THEM)
             await setDoc(doc(db, 'users', user.uid, 'connections', req.fromUid), {
                 uid: req.fromUid,
                 username: req.fromUsername,
                 displayName: req.fromDisplayName || req.fromUsername,
                 connectedAt: new Date(),
-                syncedSiteId: siteId || 'all',
-                syncedSiteName: siteName || 'All Sites'
+                syncedSiteId: finalSiteId,
+                syncedSiteName: finalSiteName
             });
 
             // 2. Add ME to THEIR connections (They connect to ME)
@@ -109,8 +139,8 @@ export const useSyncActions = () => {
                 username: myProfile?.username || 'Unknown',
                 displayName: myProfile?.displayName || 'Unknown',
                 connectedAt: new Date(),
-                syncedSiteId: 'all', // Default for now
-                syncedSiteName: 'All Sites'
+                syncedSiteId: finalSiteId,
+                syncedSiteName: finalSiteName
             });
 
             // 3. Delete Request
@@ -118,7 +148,7 @@ export const useSyncActions = () => {
 
             await showAlert({
                 title: 'Synced!',
-                message: `You are now synced with ${req.fromUsername}.`,
+                message: `You are now synced with ${req.fromUsername} on ${finalSiteName}.`,
                 type: 'success'
             });
             return true;
@@ -168,7 +198,7 @@ export const useSyncActions = () => {
         }
     };
 
-    const broadcastSiteChange = useCallback(async (newSiteId: string, newSiteName: string) => {
+    const broadcastSiteChange = useCallback(async (newSiteId: string, newSiteName: string, targetUids?: string[]) => {
         if (!user) return;
         try {
             // Get my connections
@@ -176,9 +206,14 @@ export const useSyncActions = () => {
             const snapshot = await getDocs(myConnsRef);
 
             const batch = writeBatch(db);
+            let updateCount = 0;
 
             snapshot.docs.forEach(docSnap => {
                 const partnerUid = docSnap.id;
+
+                // If targets specified, only update them.
+                if (targetUids && !targetUids.includes(partnerUid)) return;
+
                 // Update Partner's view of ME
                 // path: users/PARTNER/connections/ME
                 const ref = doc(db, 'users', partnerUid, 'connections', user.uid);
@@ -186,10 +221,22 @@ export const useSyncActions = () => {
                     syncedSiteId: newSiteId,
                     syncedSiteName: newSiteName
                 }, { merge: true });
+
+                // ALSO update MY view of partner to match context?
+                // "The logs of different sites will be updated to the already synced user"
+                // This implies bidirectional context switch.
+                const myRef = doc(db, 'users', user.uid, 'connections', partnerUid);
+                batch.set(myRef, {
+                    syncedSiteId: newSiteId,
+                    syncedSiteName: newSiteName
+                }, { merge: true });
+
+                updateCount++;
             });
 
-            await batch.commit();
-            // showAlert({ title: 'Sync Updated', message: 'Partners notified of site change.', type: 'info' });
+            if (updateCount > 0) {
+                await batch.commit();
+            }
         } catch (error: any) {
             console.error("Broadcast failed:", error);
             await showAlert({ title: 'Sync Update Failed', message: 'Could not notify partners: ' + error.message, type: 'danger' });

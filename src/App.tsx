@@ -24,6 +24,7 @@ import { useSyncNotifications } from './hooks/useSyncNotifications';
 import { useSyncActions } from './hooks/useSyncActions';
 import { useSites, type Site } from './hooks/useSites';
 import { Sidebar } from './components/Sidebar';
+import { SwitchSiteOptionsModal } from './components/SwitchSiteOptionsModal'; // Added
 
 // Inner App component that uses Context
 function InnerApp() {
@@ -35,7 +36,6 @@ function InnerApp() {
   useSyncNotifications();
   const { broadcastSiteChange } = useSyncActions();
 
-  // Multi-Site Hook
   const { selectedSite, selectSite } = useSites();
   const [showSidebar, setShowSidebar] = useState(false);
 
@@ -70,24 +70,60 @@ function InnerApp() {
     fetchLogsByRange
   } = useTrainLog(null, selectedSite?.id || null);
 
-  // Site Selection with Sync Guard
+  const { sendRequest, broadcastSiteChange } = useSyncActions();
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const [pendingSite, setPendingSite] = useState<Site | null>(null);
+
+  // Site Selection with Sync Logic
   const handleSelectSite = async (site: Site) => {
+    // If we have functional partners (not just historic), we need to decide what to do.
     if (partnerLogs.length > 0) {
-      const confirmed = await showConfirm({
-        title: 'Switch Site & Update Sync?',
-        message: `You are currently sharing data. Switching to "${site.name}" will update what your partners see.\n\nContinue?`,
-        type: 'warning',
-        confirmText: 'Switch & Update',
-        cancelText: 'Cancel'
-      });
+      setPendingSite(site);
+      setShowSwitchModal(true);
+      return;
+    }
+    selectSite(site);
+  };
 
-      if (!confirmed) return;
+  const handleSwitchOption = async (option: 'limit-current' | 'add-new' | 'solo' | 'cancel', extraData?: string) => {
+    if (!pendingSite) return;
 
-      // Notify Partners
-      await broadcastSiteChange(site.id, site.name);
+    if (option === 'cancel') {
+      setPendingSite(null);
+      return;
     }
 
-    selectSite(site);
+    // Perform Site Switch
+    selectSite(pendingSite);
+
+    // Handle Sync Logic
+    switch (option) {
+      case 'limit-current':
+        // Upgrade ALL current partners to the new site
+        // This maintains the "session" across sites
+        const partnerUids = partnerLogs.map(p => p.uid);
+        await broadcastSiteChange(pendingSite.id, pendingSite.name, partnerUids);
+        break;
+
+      case 'add-new':
+        // Invite a NEW user for this site
+        // We assume current partners STAY on the old site context mentally, 
+        // but visually we switch sites, so they will disappear from view (filtered out).
+        if (extraData) {
+          await sendRequest(extraData, pendingSite.id, pendingSite.name);
+        }
+        break;
+
+      case 'solo':
+        // Switch to site, but don't bring anyone. 
+        // Effectively "Pause" sync for this view?
+        // The useTrainLog filter will naturally hide partners not synced to this site.
+        // So we don't need to do anything except NOT broadcast.
+        break;
+    }
+
+    setPendingSite(null);
+    setShowSidebar(false);
   };
 
   const { user } = useAuth();
@@ -481,10 +517,17 @@ function InnerApp() {
         )
       }
 
-      {/* Profile Modal (Global) */}
       <EditProfileModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
+      />
+
+      <SwitchSiteOptionsModal
+        isOpen={showSwitchModal}
+        onClose={() => setShowSwitchModal(false)}
+        targetSite={pendingSite!}
+        currentPartners={partnerLogs}
+        onOptionSelect={handleSwitchOption}
       />
     </div >
   );

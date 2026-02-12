@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin } from 'lucide-react';
-import { useSites, type Site } from '../hooks/useSites';
+import { useSyncActions } from '../hooks/useSyncActions';
 
 interface SiteModalProps {
     onClose: () => void;
@@ -9,9 +9,14 @@ interface SiteModalProps {
 
 export const SiteModal: React.FC<SiteModalProps> = ({ onClose, site }) => {
     const { addSite, updateSite } = useSites();
+    const { sendRequest } = useSyncActions();
+
     const [name, setName] = useState('');
     const [location, setLocation] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const [showInvite, setShowInvite] = useState(false);
+    const [inviteUsername, setInviteUsername] = useState('');
 
     useEffect(() => {
         if (site) {
@@ -28,7 +33,10 @@ export const SiteModal: React.FC<SiteModalProps> = ({ onClose, site }) => {
         if (site) {
             await updateSite(site.id, name, location);
         } else {
-            await addSite(name, location);
+            const newSiteId = await addSite(name, location);
+            if (newSiteId && showInvite && inviteUsername.trim()) {
+                await sendRequest(inviteUsername.trim(), newSiteId, name);
+            }
         }
         setLoading(false);
         onClose();
@@ -74,7 +82,34 @@ export const SiteModal: React.FC<SiteModalProps> = ({ onClose, site }) => {
                         </div>
                     </div>
 
-                    <div className="pt-4">
+                    {!site && (
+                        <div className="border-t border-gray-100 pt-4 mt-2">
+                            <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={showInvite}
+                                    onChange={(e) => setShowInvite(e.target.checked)}
+                                    className="w-4 h-4 text-blue-600 rounded"
+                                />
+                                <span className="text-sm font-bold text-gray-700">Invite Partner?</span>
+                            </label>
+
+                            {showInvite && (
+                                <div className="animate-in fade-in slide-in-from-top-2">
+                                    <input
+                                        type="text"
+                                        value={inviteUsername}
+                                        onChange={(e) => setInviteUsername(e.target.value)}
+                                        placeholder="Partner Username"
+                                        className="w-full text-sm p-3 bg-purple-50 rounded-xl border border-purple-100 focus:border-purple-500 focus:bg-white outline-none"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1 ml-1">They will receive a request to sync this site.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="pt-2">
                         <button
                             type="submit"
                             disabled={loading}
