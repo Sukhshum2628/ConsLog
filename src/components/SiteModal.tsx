@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin } from 'lucide-react';
 import { useSyncActions } from '../hooks/useSyncActions';
+import { useSites, type Site } from '../hooks/useSites';
 
 interface SiteModalProps {
     onClose: () => void;

@@ -32,9 +32,8 @@ function InnerApp() {
     return localStorage.getItem('timeLog_hasOnboarded') === 'true';
   });
 
-  const { showAlert, showConfirm } = useModal();
+  const { showAlert } = useModal();
   useSyncNotifications();
-  const { broadcastSiteChange } = useSyncActions();
 
   const { selectedSite, selectSite } = useSites();
   const [showSidebar, setShowSidebar] = useState(false);
