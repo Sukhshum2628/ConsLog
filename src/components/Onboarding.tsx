@@ -34,7 +34,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">TimeLog</h1>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">TimeLog v2.2 (DEBUG)</h1>
                     <p className="text-gray-500 text-lg">
                         Professional Time tracking application for construction workers
                     </p>

@@ -19,7 +19,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showSyncManager, setShowSyncManager] = useState(false);
     const [view, setView] = useState<'main' | 'privacy'>('main');
-    const version = "2.1.0 (Debug Fix)";
+    const version = "2.2.0 (Force Update)";
 
     if (!isOpen) return null;
 
