@@ -238,10 +238,9 @@ function InnerApp() {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
-  // Dashboard View
   if (view === 'dashboard') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 p-4 animate-slideInRight">
+      <div className="min-h-dvh bg-gray-50 flex flex-col font-sans text-gray-900 px-4 pb-4 pt-safe-card animate-slideInRight relative">
         <DashboardPage
           logs={logs}
           onBack={() => setView('logs')}
@@ -251,7 +250,7 @@ function InnerApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 animate-fadeIn">
+    <div className="min-h-dvh bg-gray-50 flex flex-col font-sans text-gray-900 animate-fadeIn pt-safe pb-safe relative">
       <Sidebar
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
@@ -260,7 +259,7 @@ function InnerApp() {
       />
 
       {/* Header */}
-      <header className="bg-white shadow-sm px-4 pt-safe sticky top-0 z-20 transition-all border-b border-gray-100">
+      <header className="bg-white shadow-sm px-4 py-4 transition-all border-b border-gray-100 sticky top-0 z-20">
         <div className="max-w-md mx-auto py-4 flex justify-between items-center">
           <div>
             <div className="flex items-center gap-2">

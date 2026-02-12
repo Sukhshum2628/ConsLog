@@ -17,7 +17,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ logs, onBack }) =>
     }, [logs]);
 
     return (
-        <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300 pt-safe">
+        <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
                 <button

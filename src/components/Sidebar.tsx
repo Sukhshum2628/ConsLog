@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite,
 
             {/* Sidebar */}
             <div className={`
-                fixed top-0 bottom-0 left-0 w-80 bg-white z-50 shadow-2xl transform transition-transform duration-300 ease-out flex flex-col
+                fixed top-0 bottom-0 left-0 w-80 bg-white z-50 shadow-2xl transform transition-transform duration-300 ease-out flex flex-col pt-safe
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
