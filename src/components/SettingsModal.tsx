@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, X, Shield, Settings, User, Users, Trash2, LogOut, Info } from 'lucide-react';
+import { ArrowRight, X, Shield, Settings, User, Users, Trash2, LogOut, Info, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTrainLog } from '../hooks/useTrainLog';
 import { useModal } from '../context/ModalContext';
