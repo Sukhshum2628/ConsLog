@@ -19,7 +19,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showSyncManager, setShowSyncManager] = useState(false);
     const [view, setView] = useState<'main' | 'privacy'>('main');
-    const version = "2.0.0 (Build 15)";
+    const version = "2.1.0 (Debug Fix)";
 
     if (!isOpen) return null;
 
@@ -157,7 +157,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                     <div className="p-2 bg-red-50 rounded-xl group-hover:bg-red-100 transition-colors">
                                         <Trash2 size={20} className="text-red-500 group-hover:text-red-600" />
                                     </div>
-                                    <span className="font-bold">Clear Database</span>
+                                    <span className="font-bold">Clear Database (Logs Only)</span>
                                 </button>
 
                                 <div className="h-px bg-gray-100 my-2 mx-2"></div>
@@ -190,12 +190,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                             }
                                         }
                                     }}
-                                    className="w-full p-4 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-2xl transition-all text-left group border border-transparent hover:border-red-100"
+                                    className="w-full p-4 flex items-center gap-4 hover:bg-orange-50 text-orange-600 rounded-2xl transition-all text-left group border border-transparent hover:border-orange-100"
                                 >
-                                    <div className="p-2 bg-red-50 rounded-xl group-hover:bg-red-100 transition-colors">
-                                        <LogOut size={20} className="text-red-500 group-hover:text-red-600" />
+                                    <div className="p-2 bg-orange-50 rounded-xl group-hover:bg-orange-100 transition-colors">
+                                        <LogOut size={20} className="text-orange-500 group-hover:text-orange-600" />
                                     </div>
                                     <span className="font-bold">Log Out</span>
+                                </button>
+
+                                <button
+                                    onClick={async () => {
+                                        const confirmed = await showConfirm({
+                                            title: 'Hard Reset?',
+                                            message: 'This will wipe LOCAL storage/cache and force a re-login. Safe for cloud data.',
+                                            type: 'danger',
+                                            confirmText: 'Reset App',
+                                            cancelText: 'Cancel'
+                                        });
+
+                                        if (confirmed) {
+                                            try {
+                                                localStorage.clear();
+                                                sessionStorage.clear();
+                                                await logout();
+                                                window.location.reload();
+                                            } catch (error) {
+                                                console.error("Reset failed", error);
+                                            }
+                                        }
+                                    }}
+                                    className="w-full p-4 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-2xl transition-all text-left group border border-transparent hover:border-red-100 mt-2"
+                                >
+                                    <div className="p-2 bg-red-100 rounded-xl group-hover:bg-red-200 transition-colors">
+                                        <RefreshCw size={20} className="text-red-600" />
+                                    </div>
+                                    <span className="font-bold">Hard Reset (Fix Issues)</span>
                                 </button>
                             </>
                         ) : (
