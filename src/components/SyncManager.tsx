@@ -276,7 +276,7 @@ export const SyncManager: React.FC<SyncManagerProps> = ({ isOpen, onClose }) => 
                                         </div>
                                         <button
                                             onClick={() => disconnect(conn.uid)}
-                                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                                             title="Disconnect"
                                         >
                                             <Trash2 size={20} />

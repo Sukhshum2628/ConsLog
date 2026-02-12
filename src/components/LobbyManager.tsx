@@ -110,7 +110,7 @@ export const LobbyManager: React.FC<LobbyManagerProps> = ({ currentLobbyId, onJo
                                 <div className="flex items-center justify-center gap-4 relative z-10">
                                     <span className="text-5xl font-mono font-black text-gray-900 tracking-widest drop-shadow-sm">{currentLobbyId}</span>
                                     <button onClick={copyToClipboard} className="p-3 bg-white hover:bg-green-50 rounded-xl shadow-sm border border-gray-100 transition-all active:scale-95">
-                                        {copied ? <Check className="w-6 h-6 text-green-600" /> : <Copy className="w-6 h-6 text-gray-400" />}
+                                        {copied ? <Check className="w-6 h-6 text-green-600" /> : <Copy className="w-6 h-6 text-gray-500" />}
                                     </button>
                                 </div>
                             </div>

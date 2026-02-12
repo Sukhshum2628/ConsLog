@@ -260,8 +260,8 @@ function InnerApp() {
       />
 
       {/* Header */}
-      <header className="bg-white shadow-sm p-4 pt-12 sticky top-0 z-20 transition-all">
-        <div className="max-w-md mx-auto flex justify-between items-center">
+      <header className="bg-white shadow-sm px-4 pt-safe sticky top-0 z-20 transition-all border-b border-gray-100">
+        <div className="max-w-md mx-auto py-4 flex justify-between items-center">
           <div>
             <div className="flex items-center gap-2">
               <button
@@ -419,7 +419,7 @@ function InnerApp() {
       </main >
 
       {/* Footer */}
-      < footer className="bg-white border-t border-gray-200 p-4 pb-12 sticky bottom-0 safe-area-bottom z-20" >
+      <footer className="bg-white border-t border-gray-200 p-4 pb-safe sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="max-w-md mx-auto">
           <div className="flex justify-between items-center bg-gray-900 text-white p-4 rounded-xl shadow-lg">
             <div className="flex flex-col">

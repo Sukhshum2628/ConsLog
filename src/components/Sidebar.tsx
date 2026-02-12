@@ -112,8 +112,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectSite,
                                             setActiveMenuId(isMenuOpen ? null : site.id);
                                         }}
                                         className={`
-                                            absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all
-                                            ${isMenuOpen ? 'bg-gray-100 text-gray-900 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-100 hover:text-gray-600'}
+                                            absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all z-10
+                                            ${isMenuOpen ? 'bg-gray-100 text-gray-900 opacity-100' : 'text-gray-500 opacity-20 group-hover:opacity-100 hover:bg-gray-100 hover:text-gray-700'}
                                         `}
                                     >
                                         <MoreVertical size={16} />

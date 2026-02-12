@@ -4,14 +4,24 @@
 
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --safe-area-top: env(safe-area-inset-top);
-  --safe-area-bottom: env(safe-area-inset-bottom);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-.safe-area-top {
+.safe-area-top,
+.pt-safe {
   padding-top: var(--safe-area-top);
 }
 
-.safe-area-bottom {
+.safe-area-middle-top {
+  padding-top: calc(var(--safe-area-top) + 1rem);
+}
+
+.safe-area-bottom,
+.pb-safe {
   padding-bottom: var(--safe-area-bottom);
+}
+
+.pb-safe-lg {
+  padding-bottom: calc(var(--safe-area-bottom) + 3rem);
 }
