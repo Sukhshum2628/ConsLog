@@ -2,12 +2,19 @@ import React from 'react';
 import { Shield, User, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+import { App } from '@capacitor/app';
+
 interface OnboardingProps {
     onComplete: () => void;
 }
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const { signInWithGoogle } = useAuth();
+    const [version, setVersion] = React.useState<string>('');
+
+    React.useEffect(() => {
+        App.getInfo().then(info => setVersion(info.version)).catch(() => setVersion(''));
+    }, []);
 
     const handleGuest = () => {
         // Just complete, stay as guest
@@ -34,7 +41,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">TimeLog v2.2.1</h1>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">TimeLog v{version || '...'}</h1>
                     <p className="text-gray-500 text-lg">
                         Professional Time tracking application for construction workers
                     </p>

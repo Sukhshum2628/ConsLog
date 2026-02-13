@@ -6,6 +6,8 @@ import { useModal } from '../context/ModalContext';
 import { AuthModal } from './AuthModal';
 import { SyncManager } from './SyncManager';
 
+import { App } from '@capacitor/app';
+
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -19,7 +21,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showSyncManager, setShowSyncManager] = useState(false);
     const [view, setView] = useState<'main' | 'privacy'>('main');
-    const version = "2.2.1";
+    const [version, setVersion] = useState<string>('Loading...');
+
+    React.useEffect(() => {
+        const fetchVersion = async () => {
+            try {
+                const info = await App.getInfo();
+                setVersion(`${info.version}`);
+            } catch (e) {
+                console.error("Failed to get app version", e);
+                setVersion('Unknown');
+            }
+        };
+        fetchVersion();
+    }, []);
 
     if (!isOpen) return null;
 
