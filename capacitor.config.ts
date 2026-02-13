@@ -9,6 +9,7 @@ const config: CapacitorConfig = {
     FirebaseAuthentication: {
       skipNativeAuth: false,
       providers: ["microsoft.com", "google.com"],
+      resultType: "idToken"
     }
   },
 };

@@ -4,4 +4,5 @@
     <string name="title_activity_main">TimeLog</string>
     <string name="package_name">com.conslog.app</string>
     <string name="custom_url_scheme">com.conslog.app</string>
+    <string name="default_web_client_id">680232483390-4v6k3u899d13poflit6hf614ttrl01ge.apps.googleusercontent.com</string>
 </resources>

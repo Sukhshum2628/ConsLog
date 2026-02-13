@@ -50,7 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 await signInWithPopup(auth, provider);
             } else {
                 // Native Login
-                const result = await FirebaseAuthentication.signInWithGoogle();
+                const result = await FirebaseAuthentication.signInWithGoogle({
+                    mode: 'redirect', // Optional, but can help
+                    scopes: ['email', 'profile']
+                });
                 const credential = GoogleAuthProvider.credential(result.credential?.idToken);
                 await signInWithCredential(auth, credential);
             }
