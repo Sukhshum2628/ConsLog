@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { App } from '@capacitor/app';
+import { App as CapacitorApp } from '@capacitor/app';
 import { SmartButton } from './components/SmartButton';
 import { LogTable } from './components/LogTable';
 import { HistoryModal } from './components/HistoryModal';
@@ -33,7 +33,7 @@ function InnerApp() {
   useEffect(() => {
     const checkVersionAndResetStorage = async () => {
       try {
-        const info = await App.getInfo();
+        const info = await CapacitorApp.getInfo();
         const currentVersion = info.version;
         const storedVersion = localStorage.getItem("app_version");
 
