@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { App } from '@capacitor/app';
 import { SmartButton } from './components/SmartButton';
 import { LogTable } from './components/LogTable';
 import { HistoryModal } from './components/HistoryModal';
@@ -28,6 +29,63 @@ import { SwitchSiteOptionsModal } from './components/SwitchSiteOptionsModal'; //
 
 // Inner App component that uses Context
 function InnerApp() {
+  // Version-based storage reset
+  useEffect(() => {
+    const checkVersionAndResetStorage = async () => {
+      try {
+        const info = await App.getInfo();
+        const currentVersion = info.version;
+        const storedVersion = localStorage.getItem("app_version");
+
+        if (storedVersion && storedVersion !== currentVersion) {
+          console.log(`Version changed from ${storedVersion} to ${currentVersion}. Resetting storage...`);
+
+          // Preserve Firebase auth data
+          const firebaseKeys: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('firebase:')) {
+              firebaseKeys.push(key);
+            }
+          }
+          const preservedData = firebaseKeys.map(key => ({
+            key,
+            value: localStorage.getItem(key)
+          }));
+
+          // Clear all storage
+          localStorage.clear();
+          sessionStorage.clear();
+
+          // Restore Firebase auth
+          preservedData.forEach(({ key, value }) => {
+            if (value) localStorage.setItem(key, value);
+          });
+
+          // Set new version
+          localStorage.setItem("app_version", currentVersion);
+
+          // Unregister service worker if exists
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              registrations.forEach(registration => registration.unregister());
+            });
+          }
+
+          // Reload once
+          window.location.reload();
+        } else if (!storedVersion) {
+          // First launch - just set the version
+          localStorage.setItem("app_version", currentVersion);
+        }
+      } catch (error) {
+        console.error("Failed to check app version:", error);
+      }
+    };
+
+    checkVersionAndResetStorage();
+  }, []);
+
   const [hasOnboarded, setHasOnboarded] = useState<boolean>(() => {
     return localStorage.getItem('timeLog_hasOnboarded') === 'true';
   });
