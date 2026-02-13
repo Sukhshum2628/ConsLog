@@ -364,7 +364,7 @@ function InnerApp() {
 
       {/* Main Content */}
       <main className="flex-1 p-4 max-w-md mx-auto w-full flex flex-col gap-6 overflow-hidden">
-        <section className="flex-1 flex flex-col min-h-0">
+        <section className="flex-none flex flex-col min-h-0">
           <div className="flex justify-between items-end mb-2">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-2">
               {user ? `Team Logs (${logs.length})` : `Local Logs (${logs.length})`}
@@ -374,12 +374,14 @@ function InnerApp() {
             </h2>
           </div>
 
-          <LogTable
-            logs={logs}
-            onDelete={removeEntry}
-            onEdit={(log) => setEditingLog(log)}
-            onBulkDelete={bulkDeleteEntries}
-          />
+          <div className="max-h-52 overflow-y-auto rounded-2xl scrollbar-hide">
+            <LogTable
+              logs={logs}
+              onDelete={removeEntry}
+              onEdit={(log) => setEditingLog(log)}
+              onBulkDelete={bulkDeleteEntries}
+            />
+          </div>
         </section>
 
         {/* Partner Logs Section */}
