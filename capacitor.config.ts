@@ -5,11 +5,7 @@ const config: CapacitorConfig = {
   appName: 'TimeLog',
   webDir: 'dist',
   plugins: {
-    GoogleAuth: {
-      scopes: ['profile', 'email'],
-      clientId: '680232483390-4v6k3u899d13poflit6hf614ttrl01ge.apps.googleusercontent.com',
-      forceCodeForRefreshToken: true,
-    },
+
     FirebaseAuthentication: {
       skipNativeAuth: false,
       providers: ["microsoft.com", "google.com"],

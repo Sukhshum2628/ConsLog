@@ -11,7 +11,6 @@ import {
     sendEmailVerification,
     updatePassword
 } from 'firebase/auth';
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth } from '../lib/firebase';
 import { Capacitor } from '@capacitor/core';
@@ -36,11 +35,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Initialize Google Auth Plugin for Web/Native
-        if (Capacitor.getPlatform() !== 'web') {
-            GoogleAuth.initialize();
-        }
-
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setLoading(false);
@@ -56,8 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 await signInWithPopup(auth, provider);
             } else {
                 // Native Login
-                const googleUser = await GoogleAuth.signIn();
-                const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+                const result = await FirebaseAuthentication.signInWithGoogle();
+                const credential = GoogleAuthProvider.credential(result.credential?.idToken);
                 await signInWithCredential(auth, credential);
             }
         } catch (error: any) {
@@ -112,8 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Native Linking
             if (providerName === 'google') {
-                const googleUser = await GoogleAuth.signIn();
-                credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+                const result = await FirebaseAuthentication.signInWithGoogle();
+                credential = GoogleAuthProvider.credential(result.credential?.idToken);
             } else {
                 const result = await FirebaseAuthentication.signInWithMicrosoft();
                 if (result.credential) {
@@ -157,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             await signOut(auth);
             if (Capacitor.getPlatform() !== 'web') {
-                await GoogleAuth.signOut();
+                await FirebaseAuthentication.signOut();
             }
         } catch (error) {
             console.error("Logout Failed", error);
