@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Shield, User, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,7 +13,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const [version, setVersion] = React.useState<string>('');
 
     React.useEffect(() => {
-        App.getInfo().then(info => setVersion(info.version)).catch(() => setVersion(''));
+        App.getInfo().then((info: { version: string }) => setVersion(info.version)).catch(() => setVersion(''));
     }, []);
 
     const handleGuest = () => {
