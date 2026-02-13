@@ -5,6 +5,19 @@ import './index.css'
 import App from './App.tsx'
 
 const bootstrap = async () => {
+  // Defensive cleanup: Unregister any Service Workers
+  if ('serviceWorker' in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+      }
+      console.log('Service Workers unregistered');
+    } catch (error) {
+      console.error('Failed to unregister Service Workers:', error);
+    }
+  }
+
   try {
     const info = await CapacitorApp.getInfo();
     const currentVersion = info.version;
