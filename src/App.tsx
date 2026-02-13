@@ -328,36 +328,45 @@ function InnerApp() {
               )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setView('dashboard')}
+                className="p-2 bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-colors"
+                title="Dashboard"
+              >
+                <BarChart2 className="w-5 h-5" />
+              </button>
 
-            <button
-              onClick={() => setView('dashboard')}
-              className="p-2 bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-colors"
-              title="Dashboard"
-            >
-              <BarChart2 className="w-5 h-5" />
-            </button>
+              <button
+                onClick={() => setShowHistory(true)}
+                className="p-2 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
+              >
+                <History className="w-5 h-5" />
+              </button>
 
-            <button
-              onClick={() => setShowHistory(true)}
-              className="p-2 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
-            >
-              <History className="w-5 h-5" />
-            </button>
+              <button
+                onClick={handleExportClick}
+                className="p-2 bg-green-50 text-green-700 rounded-full hover:bg-green-100 transition-colors"
+              >
+                <Download className="w-5 h-5" />
+              </button>
 
-            <button
-              onClick={handleExportClick}
-              className="p-2 bg-green-50 text-green-700 rounded-full hover:bg-green-100 transition-colors"
-            >
-              <Download className="w-5 h-5" />
-            </button>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            </div>
 
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2 bg-gray-900 text-white px-2.5 py-1 rounded-lg shadow-sm border border-gray-800">
+              <span className="text-[9px] uppercase font-black text-gray-500 hidden xs:inline">Halt</span>
+              <span className="text-xs font-mono font-bold tabular-nums">
+                {totalHaltFormatted}
+              </span>
+              <div className={`w-1.5 h-1.5 rounded-full ${activeLog ? 'bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]'}`} />
+            </div>
           </div>
         </div>
       </header>
@@ -454,22 +463,7 @@ function InnerApp() {
         </section>
       </main >
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 p-4 pb-safe sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="max-w-md mx-auto">
-          <div className="flex justify-between items-center bg-gray-900 text-white p-4 rounded-xl shadow-lg">
-            <div className="flex flex-col">
-              <span className="text-xs text-gray-400 uppercase font-bold tracking-wider">
-                Total Halt Time
-              </span>
-              <span className="text-2xl font-mono font-bold">
-                {totalHaltFormatted}
-              </span>
-            </div>
-            <div className={`w-3 h-3 rounded-full ${activeLog ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`} />
-          </div>
-        </div>
-      </footer >
+
 
       {/* Modals */}
       {showHistory && <HistoryModal onClose={() => setShowHistory(false)} siteId={selectedSite?.id} />}
