@@ -517,13 +517,15 @@ function InnerApp() {
         onClose={() => setShowProfileModal(false)}
       />
 
-      <SwitchSiteOptionsModal
-        isOpen={showSwitchModal}
-        onClose={() => setShowSwitchModal(false)}
-        targetSite={pendingSite!}
-        currentPartners={partnerLogs}
-        onOptionSelect={handleSwitchOption}
-      />
+      {showSwitchModal && pendingSite && (
+        <SwitchSiteOptionsModal
+          isOpen={showSwitchModal}
+          onClose={() => setShowSwitchModal(false)}
+          targetSite={pendingSite}
+          currentPartners={partnerLogs}
+          onOptionSelect={handleSwitchOption}
+        />
+      )}
     </div >
   );
 }
