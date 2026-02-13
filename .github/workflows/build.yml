@@ -31,8 +31,8 @@ jobs:
       - name: Build Web App
         run: npm run build
 
-      - name: Sync Capacitor
-        run: npx cap sync
+      - name: Verify Build Output
+        run: ls -R dist
 
 
 
